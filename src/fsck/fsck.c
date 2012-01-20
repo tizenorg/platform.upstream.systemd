@@ -328,7 +328,7 @@ int main(int argc, char *argv[]) {
         cmdline[i++] = "/sbin/fsck";
         cmdline[i++] = "-a";
         cmdline[i++] = "-T";
-        cmdline[i++] = "-l";
+        /* cmdline[i++] = "-l"; */
 
         if (!root_directory)
                 cmdline[i++] = "-M";
