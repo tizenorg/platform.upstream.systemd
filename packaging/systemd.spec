@@ -240,6 +240,12 @@ fi
 %docs_package
 
 %files
+/var/log/README
+/etc/init.d/README
+%{_bindir}/hostnamectl
+%{_bindir}/localectl
+%{_bindir}/systemd-coredumpctl
+%{_bindir}/timedatectl
 %dir %{_sysconfdir}/systemd
 %dir %{_sysconfdir}/systemd/system
 %dir %{_sysconfdir}/systemd/user
