@@ -6,6 +6,7 @@ Release:        0
 License:        LGPLv2+ and MIT and GPLv2+
 Summary:        A System and Service Manager
 BuildRequires:  libcap-devel
+BuildRequires:  libgcrypt-devel
 BuildRequires:  pam-devel
 BuildRequires:  dbus-devel
 BuildRequires:  libxslt
