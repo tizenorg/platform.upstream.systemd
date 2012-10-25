@@ -106,6 +106,7 @@ glib-based applications using libudev functionality.
 %setup -q 
 
 %build
+%autogen
 %configure \
         --with-distro=other \
         --libexecdir=%{_prefix}/lib \
