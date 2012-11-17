@@ -75,7 +75,7 @@ Summary:        Tool for processing systemd profiling information
 License:        LGPLv2+
 Requires:       %{name} = %{version}-%{release}
 Requires:       dbus-python
-Requires:       pycairo
+Requires:       python-cairo
 # for the systemd-analyze split:
 Obsoletes:      systemd < 38-5
 
