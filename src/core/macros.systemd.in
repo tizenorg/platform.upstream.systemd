@@ -21,6 +21,7 @@
 
 %_unitdir @systemunitdir@
 %_userunitdir @userunitdir@
+%_unitdir_user @userunitdir@
 %_presetdir @systempresetdir@
 %_udevhwdbdir @udevhwdbdir@
 %_udevrulesdir @udevrulesdir@
@@ -106,4 +107,10 @@ echo %{?*} | systemd-sysusers - >/dev/null 2>&1 || : \
 
 %binfmt_apply() \
 @rootlibexecdir@/systemd-binfmt %{?*} >/dev/null 2>&1 || : \
+%{nil}
+
+
+%install_service() \
+mkdir -p %{buildroot}/%{_unitdir}/%{1} \
+ln -s ../%{2}  %{buildroot}/%{_unitdir}/%{1}/%{2}  \
 %{nil}
