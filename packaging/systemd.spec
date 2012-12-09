@@ -1,6 +1,6 @@
 Name:           systemd
 Url:            http://www.freedesktop.org/wiki/Software/systemd
-Version:        195
+Version:        196
 Release:        0
 # For a breakdown of the licensing, see README
 License:        LGPLv2+ and MIT and GPLv2+
