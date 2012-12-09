@@ -321,6 +321,8 @@ fi
 %{_prefix}/lib/systemd/user/systemd-exit.service
 
 %{_prefix}/lib/systemd/systemd-*
+%dir %{_prefix}/lib/systemd/catalog
+%{_prefix}/lib/systemd/catalog/systemd.catalog
 %{_prefix}/lib/udev
 %{_prefix}/lib/systemd/system-generators/systemd-getty-generator
 %{_prefix}/lib/systemd/system-generators/systemd-fstab-generator
