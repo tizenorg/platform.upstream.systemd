@@ -21,6 +21,7 @@
 
 %_unitdir @systemunitdir@
 %_userunitdir @userunitdir@
+%_unitdir_user /usr/lib/systemd/user
 %_presetdir @systempresetdir@
 %_udevhwdbdir @udevhwdbdir@
 %_udevrulesdir @udevrulesdir@
