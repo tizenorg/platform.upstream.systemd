@@ -1,0 +1,4 @@
+* Sun Dec 09 2012 Anas Nashif <anas.nashif@intel.com> v196@4ccb71e
+- update to v196
+- define %_unitdir_user macro for user session units
+- add %install_service macro
