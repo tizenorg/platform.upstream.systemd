@@ -1,3 +1,6 @@
+* Tue Dec 18 2012 Patrick McCarty <patrick.mccarty@linux.intel.com> v196@e024065
+- Install coredump.conf to fix systemd-coredumpctl
+
 * Sun Dec 09 2012 Anas Nashif <anas.nashif@intel.com> v196@4ccb71e
 - update to v196
 - define %_unitdir_user macro for user session units

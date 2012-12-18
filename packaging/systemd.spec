@@ -184,14 +184,6 @@ glib-based applications using libudev functionality.
 # Install modprobe fragment
 /usr/bin/mkdir -p %{buildroot}%{_sysconfdir}/modprobe.d/
 
-
-# To avoid making life hard for Rawhide-using developers, don't package the
-# kernel.core_pattern setting until systemd-coredump is a part of an actual
-# systemd release and it's made clear how to get the core dumps out of the
-# journal.
-/usr/bin/rm -f %{buildroot}%{_prefix}/lib/sysctl.d/coredump.conf
-
-
 rm -rf %{buildroot}/%{_prefix}/lib/systemd/user/default.target
 
 
@@ -309,6 +301,7 @@ fi
 %{_bindir}/systemd-detect-virt
 %{_bindir}/systemd-inhibit
 %{_bindir}/udevadm
+%{_prefix}/lib/sysctl.d/coredump.conf
 %{_prefix}/lib/systemd/systemd
 %{_prefix}/lib/systemd/system
 
