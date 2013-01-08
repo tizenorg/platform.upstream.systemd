@@ -1,6 +1,6 @@
 Name:           systemd
 Url:            http://www.freedesktop.org/wiki/Software/systemd
-Version:        196
+Version:        197
 Release:        0
 # For a breakdown of the licensing, see README
 License:        LGPLv2+ and MIT and GPLv2+
@@ -109,12 +109,12 @@ glib-based applications using libudev functionality.
 %build
 %autogen
 %configure \
-        --with-distro=other \
+        --enable-bootchart \
         --libexecdir=%{_prefix}/lib \
         --disable-gtk-doc \
 	--docdir=%{_docdir}/systemd \
         --disable-static
-/usr/bin/make %{?_smp_mflags}
+make %{?_smp_mflags}
 
 %install
 %make_install
@@ -325,6 +325,7 @@ fi
 %{_prefix}/lib/systemd/catalog/systemd.catalog
 %{_prefix}/lib/udev
 %{_prefix}/lib/systemd/system-generators/systemd-getty-generator
+%{_prefix}/lib/systemd/system-generators/systemd-rc-local-generator
 %{_prefix}/lib/systemd/system-generators/systemd-fstab-generator
 %{_prefix}/lib/systemd/system-generators/systemd-system-update-generator
 %{_prefix}/lib/tmpfiles.d/systemd.conf
@@ -372,6 +373,7 @@ fi
 %{_libdir}/libsystemd-journal.so.*
 %{_libdir}/libsystemd-id128.so.*
 %{_libdir}/libudev.so.*
+%_libdir/libnss_myhostname.so.2
 
 %files devel
 %{_libdir}/libsystemd-daemon.so
