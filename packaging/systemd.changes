@@ -1,0 +1,43 @@
+* Thu Jun 06 2013 Patrick McCarty <patrick.mccarty@linux.intel.com> aff9bf9
+- libsystemd: remove explicit dependency on systemd
+
+* Wed May 29 2013 Anas Nashif <anas.nashif@intel.com> v204@83aff59
+- Update to v204
+
+* Thu Apr 11 2013 Anas Nashif <anas.nashif@intel.com> v201@845cc83
+- Update to v201
+
+* Fri Mar 29 2013 Anas Nashif <anas.nashif@intel.com> v200@742ed62
+- Update version to v200
+
+* Wed Mar 27 2013 Anas Nashif <anas.nashif@intel.com> v199@256ce80
+- Update to v199
+
+* Fri Mar 22 2013 Anas Nashif <anas.nashif@intel.com> submit/trunk/20130318.195059@e5ee3c8
+- Fixed package groups
+
+* Sun Mar 17 2013 Anas Nashif <anas.nashif@intel.com> v198@cdafa80
+- Update to v198
+
+* Mon Mar 04 2013 Patrick McCarty <patrick.mccarty@linux.intel.com> 25a428c
+- (TZPC-1075) Fix the dangling /var/lock -> /run/lock symlink
+
+* Thu Feb 21 2013 Anas Nashif <anas.nashif@intel.com> submit/trunk/20130116.231417@87e22e2
+- Add baselibs.conf to support multilib
+
+* Fri Feb 15 2013 Patrick McCarty <patrick.mccarty@linux.intel.com> a6c2b5c
+- Enable systemd readahead services
+
+* Wed Jan 16 2013 Anas Nashif <anas.nashif@intel.com> v197@4e7b338
+- disable sysv compatibility
+
+* Tue Jan 08 2013 Anas Nashif <anas.nashif@intel.com> submit/trunk/20130108.230856@aa8a076
+- Update to v197
+
+* Tue Dec 18 2012 Patrick McCarty <patrick.mccarty@linux.intel.com> v196@e024065
+- Install coredump.conf to fix systemd-coredumpctl
+
+* Sun Dec 09 2012 Anas Nashif <anas.nashif@intel.com> v196@4ccb71e
+- update to v196
+- define %_unitdir_user macro for user session units
+- add %install_service macro
