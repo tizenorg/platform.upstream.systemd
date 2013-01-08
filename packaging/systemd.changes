@@ -1,3 +1,6 @@
+* Tue Jan 08 2013 Anas Nashif <anas.nashif@intel.com> submit/trunk/20130108.230856@aa8a076
+- Update to v197
+
 * Tue Dec 18 2012 Patrick McCarty <patrick.mccarty@linux.intel.com> v196@e024065
 - Install coredump.conf to fix systemd-coredumpctl
 
