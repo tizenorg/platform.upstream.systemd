@@ -111,9 +111,10 @@ glib-based applications using libudev functionality.
 %configure \
         --enable-bootchart \
         --libexecdir=%{_prefix}/lib \
-        --disable-gtk-doc \
-	--docdir=%{_docdir}/systemd \
-        --disable-static
+	    --docdir=%{_docdir}/systemd \
+        --disable-static \
+        --with-sysvinit-path= \
+        --with-sysvrcnd-path=
 make %{?_smp_mflags}
 
 %install
@@ -232,8 +233,6 @@ fi
 %docs_package
 
 %files
-/var/log/README
-/etc/init.d/README
 %{_bindir}/hostnamectl
 %{_bindir}/localectl
 %{_bindir}/systemd-coredumpctl
@@ -318,12 +317,10 @@ fi
 %{_prefix}/lib/systemd/catalog/systemd.catalog
 %{_prefix}/lib/udev
 %{_prefix}/lib/systemd/system-generators/systemd-getty-generator
-%{_prefix}/lib/systemd/system-generators/systemd-rc-local-generator
 %{_prefix}/lib/systemd/system-generators/systemd-fstab-generator
 %{_prefix}/lib/systemd/system-generators/systemd-system-update-generator
 %{_prefix}/lib/tmpfiles.d/systemd.conf
 %{_prefix}/lib/tmpfiles.d/x11.conf
-%{_prefix}/lib/tmpfiles.d/legacy.conf
 %{_prefix}/lib/tmpfiles.d/tmp.conf
 %{_sbindir}/init
 %{_sbindir}/reboot

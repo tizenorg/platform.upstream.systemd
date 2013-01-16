@@ -1,3 +1,6 @@
+* Wed Jan 16 2013 Anas Nashif <anas.nashif@intel.com> v197@4e7b338
+- disable sysv compatibility
+
 * Tue Jan 08 2013 Anas Nashif <anas.nashif@intel.com> submit/trunk/20130108.230856@aa8a076
 - Update to v197
 
