@@ -1,3 +1,6 @@
+* Fri Feb 15 2013 Patrick McCarty <patrick.mccarty@linux.intel.com> a6c2b5c
+- Enable systemd readahead services
+
 * Wed Jan 16 2013 Anas Nashif <anas.nashif@intel.com> v197@4e7b338
 - disable sysv compatibility
 

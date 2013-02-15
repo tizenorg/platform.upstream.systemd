@@ -181,9 +181,12 @@ make %{?_smp_mflags}
 # Make sure the NTP units dir exists
 /usr/bin/mkdir -p %{buildroot}%{_prefix}/lib/systemd/ntp-units.d/
 
-
 # Install modprobe fragment
 /usr/bin/mkdir -p %{buildroot}%{_sysconfdir}/modprobe.d/
+
+# Enable readahead services
+/usr/bin/ln -s ../systemd-readahead-collect.service %{buildroot}%{_prefix}/lib/systemd/system/default.target.wants/
+/usr/bin/ln -s ../systemd-readahead-replay.service %{buildroot}%{_prefix}/lib/systemd/system/default.target.wants/
 
 rm -rf %{buildroot}/%{_prefix}/lib/systemd/user/default.target
 
