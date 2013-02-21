@@ -1,3 +1,6 @@
+* Thu Feb 21 2013 Anas Nashif <anas.nashif@intel.com> submit/trunk/20130116.231417@87e22e2
+- Add baselibs.conf to support multilib
+
 * Fri Feb 15 2013 Patrick McCarty <patrick.mccarty@linux.intel.com> a6c2b5c
 - Enable systemd readahead services
 
