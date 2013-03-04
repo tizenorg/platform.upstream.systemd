@@ -188,6 +188,9 @@ make %{?_smp_mflags}
 /usr/bin/ln -s ../systemd-readahead-collect.service %{buildroot}%{_prefix}/lib/systemd/system/default.target.wants/
 /usr/bin/ln -s ../systemd-readahead-replay.service %{buildroot}%{_prefix}/lib/systemd/system/default.target.wants/
 
+# Fix the dangling /var/lock -> /run/lock symlink
+install -Dm644 tmpfiles.d/legacy.conf %{buildroot}%{_prefix}/lib/tmpfiles.d/legacy.conf
+
 rm -rf %{buildroot}/%{_prefix}/lib/systemd/user/default.target
 
 
@@ -325,6 +328,7 @@ fi
 %{_prefix}/lib/tmpfiles.d/systemd.conf
 %{_prefix}/lib/tmpfiles.d/x11.conf
 %{_prefix}/lib/tmpfiles.d/tmp.conf
+%{_prefix}/lib/tmpfiles.d/legacy.conf
 %{_sbindir}/init
 %{_sbindir}/reboot
 %{_sbindir}/halt
