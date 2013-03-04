@@ -1,3 +1,6 @@
+* Mon Mar 04 2013 Patrick McCarty <patrick.mccarty@linux.intel.com> 25a428c
+- (TZPC-1075) Fix the dangling /var/lock -> /run/lock symlink
+
 * Thu Feb 21 2013 Anas Nashif <anas.nashif@intel.com> submit/trunk/20130116.231417@87e22e2
 - Add baselibs.conf to support multilib
 
