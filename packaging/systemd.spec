@@ -1,10 +1,11 @@
 Name:           systemd
 Url:            http://www.freedesktop.org/wiki/Software/systemd
-Version:        197
+Version:        198
 Release:        0
 # For a breakdown of the licensing, see README
-License:        LGPLv2+ and MIT and GPLv2+
+License:        LGPL-2.0+ and MIT and GPL-2.0+
 Summary:        A System and Service Manager
+Group:          Base/Startup
 BuildRequires:  libcap-devel
 BuildRequires:  libgcrypt-devel
 BuildRequires:  pam-devel
@@ -49,8 +50,9 @@ elaborate transactional dependency-based service control logic. It can
 work as a drop-in replacement for sysvinit.
 
 %package -n libsystemd
+Group:          System/Libraries
 Summary:        systemd libraries
-License:        LGPLv2+ and MIT
+License:        LGPL-2.0+ and MIT
 Requires:       %{name} = %{version}-%{release}
 Obsoletes:      libudev < 183
 Obsoletes:      systemd < 185-4
@@ -61,7 +63,7 @@ Libraries for systemd and udev, as well as the systemd PAM module.
 
 %package devel
 Summary:        Development headers for systemd
-License:        LGPLv2+ and MIT
+License:        LGPL-2.0+ and MIT
 Requires:       %{name} = %{version}-%{release}
 Provides:       libudev-devel = %{version}
 Obsoletes:      libudev-devel < 183
@@ -72,10 +74,10 @@ Development headers and auxiliary files for developing applications for systemd.
 
 %package analyze
 Summary:        Tool for processing systemd profiling information
-License:        LGPLv2+
+License:        LGPL-2.0+
 Requires:       %{name} = %{version}-%{release}
-Requires:       dbus-python
-Requires:       python-cairo
+#Requires:       dbus-python
+#Requires:       python-cairo
 # for the systemd-analyze split:
 Obsoletes:      systemd < 38-5
 
@@ -87,7 +89,7 @@ at boot.
 
 %package -n libgudev
 Summary:        Libraries for adding libudev support to applications that use glib
-License:        LGPLv2+
+License:        LGPL-2.0+
 Requires:       %{name} = %{version}-%{release}
 
 %description -n libgudev
@@ -97,7 +99,7 @@ functionality from applications that use glib.
 %package -n libgudev-devel
 Summary:        Header files for adding libudev support to applications that use glib
 Requires:       libgudev = %{version}-%{release}
-License:        LGPLv2+
+License:        LGPL-2.0+
 
 %description -n libgudev-devel
 This package contains the header and pkg-config files for developing
@@ -239,6 +241,10 @@ fi
 %docs_package
 
 %files
+/etc/systemd/bootchart.conf
+/usr/bin/bootctl
+/usr/bin/kernel-install
+/usr/lib/systemd/system-generators/systemd-efi-boot-generator
 %{_bindir}/hostnamectl
 %{_bindir}/localectl
 %{_bindir}/systemd-coredumpctl
@@ -250,7 +256,7 @@ fi
 %dir %{_sysconfdir}/sysctl.d
 %dir %{_sysconfdir}/modules-load.d
 %dir %{_sysconfdir}/binfmt.d
-%dir %{_sysconfdir}/bash_completion.d
+/usr/share/bash-completion/*
 %dir %{_sysconfdir}/udev
 %dir %{_sysconfdir}/udev/rules.d
 %dir %{_prefix}/lib/systemd
@@ -277,7 +283,7 @@ fi
 %config(noreplace) %{_sysconfdir}/systemd/logind.conf
 %config(noreplace) %{_sysconfdir}/systemd/journald.conf
 %config(noreplace) %{_sysconfdir}/udev/udev.conf
-%{_sysconfdir}/bash_completion.d/systemd-bash-completion.sh
+#%{_sysconfdir}/bash_completion.d/systemd-bash-completion.sh
 %{_sysconfdir}/rpm/macros.systemd
 %{_sysconfdir}/xdg/systemd
 %ghost %config(noreplace) %{_sysconfdir}/hostname
