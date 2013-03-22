@@ -50,7 +50,7 @@ elaborate transactional dependency-based service control logic. It can
 work as a drop-in replacement for sysvinit.
 
 %package -n libsystemd
-Group:          System/Libraries
+Group:          Base/Startup
 Summary:        systemd libraries
 License:        LGPL-2.0+ and MIT
 Requires:       %{name} = %{version}-%{release}
