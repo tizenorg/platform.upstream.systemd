@@ -1,6 +1,6 @@
 Name:           systemd
 Url:            http://www.freedesktop.org/wiki/Software/systemd
-Version:        198
+Version:        199
 Release:        0
 # For a breakdown of the licensing, see README
 License:        LGPL-2.0+ and MIT and GPL-2.0+
@@ -51,7 +51,7 @@ work as a drop-in replacement for sysvinit.
 
 %package -n libsystemd
 Group:          Base/Startup
-Summary:        systemd libraries
+Summary:        Systemd libraries
 License:        LGPL-2.0+ and MIT
 Requires:       %{name} = %{version}-%{release}
 Obsoletes:      libudev < 183
@@ -76,9 +76,6 @@ Development headers and auxiliary files for developing applications for systemd.
 Summary:        Tool for processing systemd profiling information
 License:        LGPL-2.0+
 Requires:       %{name} = %{version}-%{release}
-#Requires:       dbus-python
-#Requires:       python-cairo
-# for the systemd-analyze split:
 Obsoletes:      systemd < 38-5
 
 %description analyze
@@ -238,7 +235,6 @@ fi
 %postun -n libgudev -p /sbin/ldconfig
 
 
-%docs_package
 
 %files
 /etc/systemd/bootchart.conf
@@ -312,7 +308,7 @@ fi
 %{_bindir}/systemd-detect-virt
 %{_bindir}/systemd-inhibit
 %{_bindir}/udevadm
-%{_prefix}/lib/sysctl.d/coredump.conf
+%{_prefix}/lib/sysctl.d/*.conf
 %{_prefix}/lib/systemd/systemd
 %{_prefix}/lib/systemd/system
 
@@ -323,6 +319,9 @@ fi
 %{_prefix}/lib/systemd/user/sockets.target
 %{_prefix}/lib/systemd/user/sound.target
 %{_prefix}/lib/systemd/user/systemd-exit.service
+%{_prefix}/lib/systemd/user/paths.target
+%{_prefix}/lib/systemd/user/smartcard.target
+%{_prefix}/lib/systemd/user/timers.target
 
 %{_prefix}/lib/systemd/systemd-*
 %dir %{_prefix}/lib/systemd/catalog
