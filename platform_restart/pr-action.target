@@ -1,0 +1,11 @@
+# This file is for platform-restart action target
+#
+# This target do something as belows
+# - Clean the '/tmp' directory
+# - Run 'pr-custom.target'
+# - Re-run all Tizen service daemons
+
+[Unit]
+Description=Platform-restart action
+DefaultDependencies=no
+AllowIsolate=yes
