@@ -1,0 +1,5 @@
+[Unit]
+Description=Custom action script for platform restart
+DefaultDependencies=no
+After=cleanup-tmp.service
+Before=do-return.service

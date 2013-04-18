@@ -1,0 +1,12 @@
+# This file is the main service file of platform restart.
+#
+[Unit]
+Description=Platform restart main service
+DefaultDependencies=no
+Requires=shutdown.target
+After=shutdown.target
+
+[Service]
+Type=oneshot
+StandardOutput=kmsg
+ExecStart=/usr/bin/systemctl isolate pr-action.target
