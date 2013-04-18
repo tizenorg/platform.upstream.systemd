@@ -1,0 +1,6 @@
+[Unit]
+Description=Platform restart without Kernel rebooting
+DefaultDependencies=no
+Requires=platform-restart.service
+After=platform-restart.service
+AllowIsolate=yes

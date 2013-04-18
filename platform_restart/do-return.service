@@ -1,0 +1,12 @@
+[Unit]
+Description=Re-run system daemon
+DefaultDependencies=no
+After=pr-custom.target
+Before=pr-action.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl default
+
+[Install]
+WantedBy=pr-action.target
