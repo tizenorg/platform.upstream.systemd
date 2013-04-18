@@ -1,0 +1,16 @@
+# This is example for custom service file of platform restart.
+#
+# If some service file is installed into 'pr-custom.target.wants' directory
+# or have the proprity 'WantedBy=pr-custom.target',
+# its service execute after all Tizen system daemons is dead
+
+[Unit]
+Description=Test Script for testing platform restart
+Before=pr-custom.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/touch /tmp/SomeScriptIsExecuted
+
+[Install]
+WantedBy=pr-custom.target
