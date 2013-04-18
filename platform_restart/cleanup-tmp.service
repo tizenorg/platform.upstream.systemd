@@ -1,0 +1,14 @@
+# This file is for platform restart of Tizen
+
+[Unit]
+Description=Clean up temporary directory
+DefaultDependencies=no
+Before=pr-action.target pr-custom.target do-return.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/umount /tmp
+ExecStart=/bin/mount /tmp
+
+[Install]
+WantedBy=pr-action.target
