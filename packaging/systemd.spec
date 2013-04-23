@@ -23,6 +23,7 @@ BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(liblzma)
 BuildRequires:  pkgconfig(libpci)
+BuildRequires:  attr-devel
 Requires:       dbus
 Requires:       filesystem
 Requires:       hwdata
