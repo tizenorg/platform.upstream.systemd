@@ -28,6 +28,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <attr/xattr.h>
 
 #include "udev.h"
 
@@ -252,7 +253,7 @@ void udev_node_update_old_links(struct udev_device *dev, struct udev_device *dev
         }
 }
 
-static int node_permissions_apply(struct udev_device *dev, bool apply, mode_t mode, uid_t uid, gid_t gid)
+static int node_permissions_apply(struct udev_device *dev, bool apply, mode_t mode, uid_t uid, gid_t gid, const char* smack_label)
 {
         const char *devnode = udev_device_get_devnode(dev);
         dev_t devnum = udev_device_get_devnum(dev);
@@ -288,13 +289,20 @@ static int node_permissions_apply(struct udev_device *dev, bool apply, mode_t mo
                 label_fix(devnode, true, false);
         }
 
+        if (smack_label) {
+                if (lsetxattr(devnode, "security.SMACK64", smack_label, strlen(smack_label), 0) < 0) {
+                        log_error("setting smack label %s for node %s failed", smack_label, devnode);
+                        err = -errno;
+                }
+        }
+
         /* always update timestamp when we re-use the node, like on media change events */
         utimensat(AT_FDCWD, devnode, NULL, 0);
 out:
         return err;
 }
 
-void udev_node_add(struct udev_device *dev, bool apply, mode_t mode, uid_t uid, gid_t gid)
+void udev_node_add(struct udev_device *dev, bool apply, mode_t mode, uid_t uid, gid_t gid, const char* smack_label)
 {
         char filename[UTIL_PATH_SIZE];
         struct udev_list_entry *list_entry;
@@ -302,7 +310,7 @@ void udev_node_add(struct udev_device *dev, bool apply, mode_t mode, uid_t uid, 
         log_debug("handling device node '%s', devnum=%s, mode=%#o, uid=%d, gid=%d\n",
                   udev_device_get_devnode(dev), udev_device_get_id_filename(dev), mode, uid, gid);
 
-        if (node_permissions_apply(dev, apply, mode, uid, gid) < 0)
+        if (node_permissions_apply(dev, apply, mode, uid, gid, smack_label) < 0)
                 return;
 
         /* always add /dev/{block,char}/$major:$minor */

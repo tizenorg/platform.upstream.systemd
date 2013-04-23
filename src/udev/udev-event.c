@@ -60,6 +60,7 @@ void udev_event_unref(struct udev_event *event)
         udev_list_cleanup(&event->run_list);
         free(event->program_result);
         free(event->name);
+        free(event->smack_label);
         free(event);
 }
 
@@ -864,7 +865,7 @@ int udev_event_execute_rules(struct udev_event *event, struct udev_rules *rules,
                         }
 
                         apply = streq(udev_device_get_action(dev), "add") || event->owner_set || event->group_set || event->mode_set;
-                        udev_node_add(dev, apply, event->mode, event->uid, event->gid);
+                        udev_node_add(dev, apply, event->mode, event->uid, event->gid, event->smack_label);
                 }
 
                 /* preserve old, or get new initialization timestamp */
