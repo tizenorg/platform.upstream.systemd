@@ -161,6 +161,7 @@ enum token_type {
         TK_A_RUN_BUILTIN,               /* val, bool */
         TK_A_RUN_PROGRAM,               /* val, bool */
         TK_A_GOTO,                      /* size_t */
+        TK_A_SMACK,                     /* val */
 
         TK_END,
 };
@@ -298,6 +299,7 @@ static const char *token_str(enum token_type type)
                 [TK_A_RUN_BUILTIN] =            "A RUN_BUILTIN",
                 [TK_A_RUN_PROGRAM] =            "A RUN_PROGRAM",
                 [TK_A_GOTO] =                   "A GOTO",
+                [TK_A_SMACK] =                  "A SMACK",
 
                 [TK_END] =                      "END",
         };
@@ -368,6 +370,7 @@ static void dump_token(struct udev_rules *rules, struct token *token)
                 break;
         case TK_M_TAG:
         case TK_A_TAG:
+        case TK_A_SMACK:
                 log_debug("%s %s '%s'\n", token_str(type), operation_str(op), value);
                 break;
         case TK_A_STRING_ESCAPE_NONE:
@@ -898,6 +901,7 @@ static int rule_add_key(struct rule_tmp *rule_tmp, enum token_type type,
         case TK_A_GOTO:
         case TK_M_TAG:
         case TK_A_TAG:
+        case TK_A_SMACK:
                 token->key.value_off = rules_add_string(rule_tmp->rules, value);
                 break;
         case TK_M_IMPORT_BUILTIN:
@@ -1418,6 +1422,17 @@ static int add_rule(struct udev_rules *rules, char *line,
                                 rule_add_key(&rule_tmp, TK_A_MODE_ID, op, NULL, &mode);
                         else
                                 rule_add_key(&rule_tmp, TK_A_MODE, op, value, NULL);
+                        rule_tmp.rule.rule.can_set_name = true;
+                        continue;
+                }
+
+                if (streq(key, "SMACK")) {
+                        if (value[0] == '\0') {
+                                log_error("SMACK=\"\" is ignored, invalid label \"\" "
+                                "please remove it from %s:%u\n", filename, lineno);
+                                continue;
+                        }
+                        rule_add_key(&rule_tmp, TK_A_SMACK, op, value, NULL);
                         rule_tmp.rule.rule.can_set_name = true;
                         continue;
                 }
@@ -2267,6 +2282,25 @@ int udev_rules_apply_to_event(struct udev_rules *rules, struct udev_event *event
                         event->mode = mode;
                         log_debug("MODE %#o %s:%u\n",
                                   event->mode,
+                                  rules_str(rules, rule->rule.filename_off),
+                                  rule->rule.filename_line);
+                        break;
+                }
+                case TK_A_SMACK: {
+                        const char* smack_label = rules_str(rules, cur->key.value_off);
+                        char smack_str[UTIL_PATH_SIZE];
+
+                        if (event->smack_final)
+                                break;
+                        if (cur->key.op == OP_ASSIGN_FINAL)
+                                event->smack_final = true;
+
+                        udev_event_apply_format(event, smack_label, smack_str, sizeof(smack_str));
+                        free(event->smack_label);
+                        event->smack_label = strdup(smack_str);
+
+                        log_debug("SMACK %s %s:%u\n",
+                                  event->smack_label,
                                   rules_str(rules, rule->rule.filename_off),
                                   rule->rule.filename_line);
                         break;
