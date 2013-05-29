@@ -1,5 +1,5 @@
 Name:           systemd
-Version:        201
+Version:        204
 Release:        0
 # For a breakdown of the licensing, see README
 License:        LGPL-2.0+ and MIT and GPL-2.0+
@@ -241,6 +241,8 @@ fi
 %{_sysconfdir}/systemd/bootchart.conf
 %{_bindir}/bootctl
 %{_bindir}/kernel-install
+%{_prefix}/lib/kernel/install.d/50-depmod.install
+%{_prefix}/lib/kernel/install.d/90-loaderentry.install
 %{_prefix}/lib/systemd/system-generators/systemd-efi-boot-generator
 %{_bindir}/hostnamectl
 %{_bindir}/localectl
