@@ -55,7 +55,6 @@ work as a drop-in replacement for sysvinit.
 License:        LGPL-2.0+ and MIT
 Summary:        Systemd libraries
 Group:          Base/Startup
-Requires:       %{name} = %{version}
 Obsoletes:      libudev < 183
 Obsoletes:      systemd < 185-4
 Conflicts:      systemd < 185-4
