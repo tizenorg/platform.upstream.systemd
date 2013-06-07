@@ -1,3 +1,6 @@
+* Thu Jun 06 2013 Patrick McCarty <patrick.mccarty@linux.intel.com> aff9bf9
+- libsystemd: remove explicit dependency on systemd
+
 * Wed May 29 2013 Anas Nashif <anas.nashif@intel.com> v204@83aff59
 - Update to v204
 
