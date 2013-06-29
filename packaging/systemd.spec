@@ -7,6 +7,7 @@ Summary:        A System and Service Manager
 Url:            http://www.freedesktop.org/wiki/Software/systemd
 Group:          Base/Startup
 Source0:        http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
+Source1001: 	systemd.manifest
 BuildRequires:  gperf
 BuildRequires:  hwdata
 BuildRequires:  intltool >= 0.40.0
@@ -104,6 +105,7 @@ glib-based applications using libudev functionality.
 
 %prep
 %setup -q
+cp %{SOURCE1001} .
 
 %build
 %autogen
@@ -236,6 +238,7 @@ fi
 
 
 %files
+%manifest %{name}.manifest
 %{_sysconfdir}/systemd/bootchart.conf
 %{_bindir}/bootctl
 %{_bindir}/kernel-install
@@ -376,6 +379,7 @@ fi
 %ghost %config(noreplace) %{_sysconfdir}/systemd/system/runlevel5.target
 
 %files -n libsystemd
+%manifest %{name}.manifest
 %{_libdir}/security/pam_systemd.so
 %{_libdir}/libsystemd-daemon.so.*
 %{_libdir}/libsystemd-login.so.*
@@ -385,6 +389,7 @@ fi
 %{_libdir}/libnss_myhostname.so.2
 
 %files devel
+%manifest %{name}.manifest
 %{_libdir}/libsystemd-daemon.so
 %{_libdir}/libsystemd-login.so
 %{_libdir}/libsystemd-journal.so
@@ -406,12 +411,15 @@ fi
 
 
 %files analyze
+%manifest %{name}.manifest
 %{_bindir}/systemd-analyze
 
 %files -n libgudev
+%manifest %{name}.manifest
 %{_libdir}/libgudev-1.0.so.*
 
 %files -n libgudev-devel
+%manifest %{name}.manifest
 %{_libdir}/libgudev-1.0.so
 %dir %{_includedir}/gudev-1.0
 %dir %{_includedir}/gudev-1.0/gudev
