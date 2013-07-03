@@ -167,10 +167,9 @@ make %{?_smp_mflags}
 /usr/bin/touch %{buildroot}%{_sysconfdir}/machine-id
 /usr/bin/touch %{buildroot}%{_sysconfdir}/machine-info
 /usr/bin/touch %{buildroot}%{_sysconfdir}/timezone
-/usr/bin/mkdir -p %{buildroot}%{_sysconfdir}/X11/xorg.conf.d
-/usr/bin/touch %{buildroot}%{_sysconfdir}/X11/xorg.conf.d/00-keyboard.conf
+#/usr/bin/mkdir -p %{buildroot}%{_sysconfdir}/X11/xorg.conf.d
+#/usr/bin/touch %{buildroot}%{_sysconfdir}/X11/xorg.conf.d/00-keyboard.conf
 
-# Install Fedora default preset policy
 /usr/bin/mkdir -p %{buildroot}%{_prefix}/lib/systemd/system-preset/
 /usr/bin/mkdir -p %{buildroot}%{_prefix}/lib/systemd/user-preset/
 
@@ -241,6 +240,8 @@ fi
 %{_sysconfdir}/systemd/bootchart.conf
 %{_bindir}/bootctl
 %{_bindir}/kernel-install
+%dir %{_prefix}/lib/kernel
+%dir %{_prefix}/lib/kernel/install.d
 %{_prefix}/lib/kernel/install.d/50-depmod.install
 %{_prefix}/lib/kernel/install.d/90-loaderentry.install
 %{_prefix}/lib/systemd/system-generators/systemd-efi-boot-generator
@@ -259,6 +260,7 @@ fi
 %dir %{_sysconfdir}/udev
 %dir %{_sysconfdir}/udev/rules.d
 %dir %{_prefix}/lib/systemd
+%dir %{_prefix}/lib/systemd/system
 %dir %{_prefix}/lib/systemd/system-generators
 %dir %{_prefix}/lib/systemd/user-generators
 %dir %{_prefix}/lib/systemd/system-preset
@@ -291,7 +293,6 @@ fi
 %ghost %config(noreplace) %{_sysconfdir}/machine-id
 %ghost %config(noreplace) %{_sysconfdir}/machine-info
 %ghost %config(noreplace) %{_sysconfdir}/timezone
-%ghost %config(noreplace) %{_sysconfdir}/X11/xorg.conf.d/00-keyboard.conf
 %{_bindir}/systemd
 %{_bindir}/systemctl
 %{_bindir}/systemd-notify
@@ -315,6 +316,8 @@ fi
 %{_prefix}/lib/systemd/systemd
 %{_prefix}/lib/systemd/system
 
+%dir /usr/lib/systemd/system/basic.target.wants
+%dir %{_prefix}/lib/systemd/user
 %{_prefix}/lib/systemd/user/bluetooth.target
 %{_prefix}/lib/systemd/user/exit.target
 %{_prefix}/lib/systemd/user/printer.target
@@ -356,6 +359,8 @@ fi
 %{_datadir}/dbus-1/interfaces/org.freedesktop.hostname1.xml
 %{_datadir}/dbus-1/interfaces/org.freedesktop.locale1.xml
 %{_datadir}/dbus-1/interfaces/org.freedesktop.timedate1.xml
+%dir %{_datadir}/polkit-1
+%dir %{_datadir}/polkit-1/actions
 %{_datadir}/polkit-1/actions/org.freedesktop.systemd1.policy
 %{_datadir}/polkit-1/actions/org.freedesktop.hostname1.policy
 %{_datadir}/polkit-1/actions/org.freedesktop.login1.policy
@@ -386,6 +391,7 @@ fi
 %{_libdir}/libsystemd-journal.so
 %{_libdir}/libsystemd-id128.so
 %{_libdir}/libudev.so
+%dir %{_includedir}/systemd
 %{_includedir}/systemd/sd-daemon.h
 %{_includedir}/systemd/sd-login.h
 %{_includedir}/systemd/sd-journal.h
