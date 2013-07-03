@@ -1,5 +1,5 @@
 Name:           systemd
-Version:        204
+Version:        205
 Release:        0
 # For a breakdown of the licensing, see README
 License:        LGPL-2.0+ and MIT and GPL-2.0+
@@ -27,6 +27,7 @@ BuildRequires:  attr-devel
 Requires:       dbus
 Requires:       filesystem
 Requires:       hwdata
+Requires:       libsystemd = %{version}-%{release}
 Requires(post): coreutils
 Requires(post): gawk
 Requires(pre):  coreutils
@@ -238,17 +239,24 @@ fi
 
 %files
 %{_sysconfdir}/systemd/bootchart.conf
+/etc/dbus-1/system.d/org.freedesktop.machine1.conf
 %{_bindir}/bootctl
+%{_bindir}/machinectl
+%{_bindir}/hostnamectl
+%{_bindir}/localectl
+%{_bindir}/systemd-coredumpctl
+%{_bindir}/timedatectl
+%{_bindir}/loginctl
+%{_bindir}/systemctl
+%{_bindir}/journalctl
+
+%{_bindir}/systemd-run
 %{_bindir}/kernel-install
 %dir %{_prefix}/lib/kernel
 %dir %{_prefix}/lib/kernel/install.d
 %{_prefix}/lib/kernel/install.d/50-depmod.install
 %{_prefix}/lib/kernel/install.d/90-loaderentry.install
 %{_prefix}/lib/systemd/system-generators/systemd-efi-boot-generator
-%{_bindir}/hostnamectl
-%{_bindir}/localectl
-%{_bindir}/systemd-coredumpctl
-%{_bindir}/timedatectl
 %dir %{_sysconfdir}/systemd
 %dir %{_sysconfdir}/systemd/system
 %dir %{_sysconfdir}/systemd/user
@@ -285,7 +293,7 @@ fi
 %config(noreplace) %{_sysconfdir}/systemd/journald.conf
 %config(noreplace) %{_sysconfdir}/udev/udev.conf
 #%{_sysconfdir}/bash_completion.d/systemd-bash-completion.sh
-%{_sysconfdir}/rpm/macros.systemd
+%{_prefix}/lib/rpm/macros.d/macros.systemd
 %{_sysconfdir}/xdg/systemd
 %ghost %config(noreplace) %{_sysconfdir}/hostname
 %ghost %config(noreplace) %{_sysconfdir}/vconsole.conf
@@ -294,14 +302,11 @@ fi
 %ghost %config(noreplace) %{_sysconfdir}/machine-info
 %ghost %config(noreplace) %{_sysconfdir}/timezone
 %{_bindir}/systemd
-%{_bindir}/systemctl
 %{_bindir}/systemd-notify
 %{_bindir}/systemd-ask-password
 %{_bindir}/systemd-tty-ask-password-agent
 %{_bindir}/systemd-machine-id-setup
-%{_bindir}/loginctl
 %{_bindir}/systemd-loginctl
-%{_bindir}/journalctl
 %{_bindir}/systemd-tmpfiles
 %{_bindir}/systemd-nspawn
 %{_bindir}/systemd-stdio-bridge
@@ -350,6 +355,7 @@ fi
 %{_sbindir}/udevadm
 %{_datadir}/systemd/kbd-model-map
 %{_datadir}/dbus-1/services/org.freedesktop.systemd1.service
+%{_datadir}/dbus-1/system-services/org.freedesktop.machine1.service
 %{_datadir}/dbus-1/system-services/org.freedesktop.systemd1.service
 %{_datadir}/dbus-1/system-services/org.freedesktop.hostname1.service
 %{_datadir}/dbus-1/system-services/org.freedesktop.login1.service

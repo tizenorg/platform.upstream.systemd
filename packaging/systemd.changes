@@ -1,3 +1,7 @@
+* Wed Jul 03 2013 Anas Nashif <anas.nashif@intel.com> v205@0fb50ae
+- Update to v205
+- own our directories
+
 * Thu Jun 06 2013 Patrick McCarty <patrick.mccarty@linux.intel.com> aff9bf9
 - libsystemd: remove explicit dependency on systemd
 
