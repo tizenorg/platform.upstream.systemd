@@ -1,3 +1,6 @@
+* Tue Oct 08 2013 Jae-young Hwang <j-zero.hwang@samsung.com> accepted/tizen/20130912.195607@c54c944
+- Make reboot to support additional parameter
+
 * Fri Aug 30 2013 Mikko Ylinen <mikko.ylinen@intel.com> submit/tizen/20130826.060841@90cfb0c
 - systemd: record efi timestamps after /sys is mounted
 - install pamconsole-tmp.conf into /usr/lib/..
