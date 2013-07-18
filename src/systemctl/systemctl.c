@@ -19,6 +19,8 @@
   along with systemd; If not, see <http://www.gnu.org/licenses/>.
 ***/
 
+#include <linux/reboot.h>
+#include <sys/syscall.h>
 #include <sys/reboot.h>
 #include <stdio.h>
 #include <getopt.h>
@@ -133,6 +135,7 @@ static const char *arg_host = NULL;
 static unsigned arg_lines = 10;
 static OutputMode arg_output = OUTPUT_SHORT;
 static bool arg_plain = false;
+static char *arg_reboot = NULL;
 
 static bool private_bus = false;
 
@@ -5095,9 +5098,22 @@ static int halt_parse_argv(int argc, char *argv[]) {
                 }
         }
 
-        if (optind < argc) {
-                log_error("Too many arguments.");
-                return -EINVAL;
+        if (arg_action == ACTION_REBOOT) {
+                /* Current tizen device take too long time to reboot.
+                 * So temporary reboot will be worked as force boot. */
+                arg_force = 2;
+                /* reboot allow just one argument for his command string*/
+                if (optind+1 == argc)
+                        arg_reboot = strdup(argv[argc-1]);
+                else if (optind+1 < argc) {
+                        log_error("Too many arguments.");
+                        return -EINVAL;
+                }
+        } else {
+                if (optind < argc) {
+                        log_error("Too many arguments.");
+                        return -EINVAL;
+                }
         }
 
         return 1;
@@ -5846,7 +5862,11 @@ static _noreturn_ void halt_now(enum action a) {
 
         case ACTION_REBOOT:
                 log_info("Rebooting.");
-                reboot(RB_AUTOBOOT);
+                if (arg_reboot)
+                        syscall(SYS_reboot, LINUX_REBOOT_MAGIC1, LINUX_REBOOT_MAGIC2,
+                                LINUX_REBOOT_CMD_RESTART2, arg_reboot);
+                else
+                        reboot(RB_AUTOBOOT);
                 break;
 
         default:
