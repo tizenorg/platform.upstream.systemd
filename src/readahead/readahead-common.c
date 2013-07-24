@@ -333,7 +333,7 @@ finish:
         return r;
 }
 
-int block_get_readahead(const char *p, uint64_t *bytes) {
+int block_get_readahead(const char *p, uint64_t *bytes, bool on_btrfs) {
         struct stat st;
         char *ap = NULL, *line = NULL;
         int r;
@@ -343,18 +343,26 @@ int block_get_readahead(const char *p, uint64_t *bytes) {
         assert(p);
         assert(bytes);
 
-        if (stat(p, &st) < 0)
-                return -errno;
+        if (on_btrfs) {
+                if (asprintf(&ap, "/sys/devices/virtual/bdi/btrfs-1/read_ahead_kb") < 0) {
+                        r = -ENOMEM;
+                        goto finish;
+                }
 
-        if (major(st.st_dev) == 0)
-                return 0;
+        } else {
+                if (stat(p, &st) < 0)
+                        return -errno;
 
-        d = st.st_dev;
-        block_get_whole_disk(d, &d);
+                if (major(st.st_dev) == 0)
+                        return 0;
 
-        if (asprintf(&ap, "/sys/dev/block/%u:%u/bdi/read_ahead_kb", major(d), minor(d)) < 0) {
-                r = -ENOMEM;
-                goto finish;
+                d = st.st_dev;
+                block_get_whole_disk(d, &d);
+
+                if (asprintf(&ap, "/sys/dev/block/%u:%u/bdi/read_ahead_kb", major(d), minor(d)) < 0) {
+                        r = -ENOMEM;
+                        goto finish;
+                }
         }
 
         r = read_one_line_file(ap, &line);
@@ -374,7 +382,7 @@ finish:
         return r;
 }
 
-int block_set_readahead(const char *p, uint64_t bytes) {
+int block_set_readahead(const char *p, uint64_t bytes, bool on_btrfs) {
         struct stat st;
         char *ap = NULL, *line = NULL;
         int r;
@@ -383,18 +391,26 @@ int block_set_readahead(const char *p, uint64_t bytes) {
         assert(p);
         assert(bytes);
 
-        if (stat(p, &st) < 0)
-                return -errno;
+        if (on_btrfs) {
+                if (asprintf(&ap, "/sys/devices/virtual/bdi/btrfs-1/read_ahead_kb") < 0) {
+                        r = -ENOMEM;
+                        goto finish;
+                }
 
-        if (major(st.st_dev) == 0)
-                return 0;
+        } else {
+                if (stat(p, &st) < 0)
+                        return -errno;
 
-        d = st.st_dev;
-        block_get_whole_disk(d, &d);
+                if (major(st.st_dev) == 0)
+                        return 0;
 
-        if (asprintf(&ap, "/sys/dev/block/%u:%u/bdi/read_ahead_kb", major(d), minor(d)) < 0) {
-                r = -ENOMEM;
-                goto finish;
+                d = st.st_dev;
+                block_get_whole_disk(d, &d);
+
+                if (asprintf(&ap, "/sys/dev/block/%u:%u/bdi/read_ahead_kb", major(d), minor(d)) < 0) {
+                        r = -ENOMEM;
+                        goto finish;
+                }
         }
 
         if (asprintf(&line, "%llu", (unsigned long long) bytes / 1024ULL) < 0) {
