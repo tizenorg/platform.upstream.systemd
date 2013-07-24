@@ -256,7 +256,17 @@ static int collect(const char *root) {
                 goto finish;
         }
 
+        if (asprintf(&pack_fn_new, "%s/.readahead.new", root) < 0) {
+                r = log_oom();
+                goto finish;
+        }
+
+        on_ssd = fs_on_ssd(root) > 0;
+
         starttime = now(CLOCK_MONOTONIC);
+
+        if (statfs(root, &sfs) >= 0 && F_TYPE_CMP(sfs.f_type, BTRFS_SUPER_MAGIC))
+                on_btrfs = true;
 
         /* If there's no pack file yet we lower the kernel readahead
          * so that mincore() is accurate. If there is a pack file
@@ -264,8 +274,8 @@ static int collect(const char *root) {
          * readahead is never triggered. */
         previous_block_readahead_set =
                 access(pack_fn, F_OK) < 0 &&
-                block_get_readahead(root, &previous_block_readahead) >= 0 &&
-                block_set_readahead(root, 8*1024) >= 0;
+                block_get_readahead(root, &previous_block_readahead, on_btrfs) >= 0 &&
+                block_set_readahead(root, 8*1024, on_btrfs) >= 0;
 
         if (ioprio_set(IOPRIO_WHO_PROCESS, getpid(), IOPRIO_PRIO_VALUE(IOPRIO_CLASS_IDLE, 0)) < 0)
                 log_warning("Failed to set IDLE IO priority class: %m");
@@ -503,16 +513,9 @@ done:
 
         log_debug("Writing Pack File...");
 
-        on_ssd = fs_on_ssd(root) > 0;
         log_debug("On SSD: %s", yes_no(on_ssd));
 
-        on_btrfs = statfs(root, &sfs) >= 0 && F_TYPE_CMP(sfs.f_type, BTRFS_SUPER_MAGIC);
         log_debug("On btrfs: %s", yes_no(on_btrfs));
-
-        if (asprintf(&pack_fn_new, "%s/.readahead.new", root) < 0) {
-                r = log_oom();
-                goto finish;
-        }
 
         pack = fopen(pack_fn_new, "we");
         if (!pack) {
@@ -524,9 +527,9 @@ done:
         fputs(CANONICAL_HOST READAHEAD_PACK_FILE_VERSION, pack);
         putc(on_ssd ? 'S' : 'R', pack);
 
-        if (on_ssd || on_btrfs) {
+        if (on_ssd) {
 
-                /* On SSD or on btrfs, just write things out in the
+                /* On SSD, just write things out in the
                  * order the files were accessed. */
 
                 HASHMAP_FOREACH_KEY(q, p, files, i)
@@ -611,8 +614,8 @@ finish:
                 /* Restore the original kernel readahead setting if we
                  * changed it, and nobody has overwritten it since
                  * yet. */
-                if (block_get_readahead(root, &bytes) >= 0 && bytes == 8*1024)
-                        block_set_readahead(root, previous_block_readahead);
+                if (block_get_readahead(root, &bytes, on_btrfs) >= 0 && bytes == 8*1024)
+                        block_set_readahead(root, previous_block_readahead, on_btrfs);
         }
 
         return r;
@@ -621,7 +624,7 @@ finish:
 int main_collect(const char *root) {
 
         if (!root)
-                root = "/";
+                root = strdup("/");
 
         /* Skip this step on read-only media. Note that we check the
          * underlying block device here, not he read-only flag of the
