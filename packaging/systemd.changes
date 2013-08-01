@@ -1,3 +1,7 @@
+* Thu Aug 01 2013 Michael I Doherty <michael.i.doherty@intel.com> submit/tizen/20130726.151754@0cc3906
+- (TZPC-4050) Add btrfs root device detection for read_ahead_kb tuning.
+- (TZPC-3533) Allow swap to be activated concurrently with sysinit target
+
 * Thu Jun 06 2013 Patrick McCarty <patrick.mccarty@linux.intel.com> aff9bf9
 - libsystemd: remove explicit dependency on systemd
 
