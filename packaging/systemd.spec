@@ -426,4 +426,3 @@ fi
 %dir %{_includedir}/gudev-1.0/gudev
 %{_includedir}/gudev-1.0/gudev/*.h
 %{_libdir}/pkgconfig/gudev-1.0*
-
