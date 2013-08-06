@@ -7,6 +7,7 @@ Summary:        A System and Service Manager
 Url:            http://www.freedesktop.org/wiki/Software/systemd
 Group:          Base/Startup
 Source0:        http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
+Source1:        pamconsole-tmp.conf
 Source1001: 	systemd.manifest
 BuildRequires:  gperf
 BuildRequires:  hwdata
@@ -191,6 +192,8 @@ make %{?_smp_mflags}
 # Fix the dangling /var/lock -> /run/lock symlink
 install -Dm644 tmpfiles.d/legacy.conf %{buildroot}%{_prefix}/lib/tmpfiles.d/legacy.conf
 
+install -m644 %{SOURCE1} %{buildroot}%{_prefix}/lib/tmpfiles.d/
+
 rm -rf %{buildroot}/%{_prefix}/lib/systemd/user/default.target
 
 
@@ -342,6 +345,7 @@ fi
 %{_prefix}/lib/tmpfiles.d/x11.conf
 %{_prefix}/lib/tmpfiles.d/tmp.conf
 %{_prefix}/lib/tmpfiles.d/legacy.conf
+%{_prefix}/lib/tmpfiles.d/pamconsole-tmp.conf
 %{_sbindir}/init
 %{_sbindir}/reboot
 %{_sbindir}/halt
