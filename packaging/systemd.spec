@@ -192,7 +192,7 @@ make %{?_smp_mflags}
 # Fix the dangling /var/lock -> /run/lock symlink
 install -Dm644 tmpfiles.d/legacy.conf %{buildroot}%{_prefix}/lib/tmpfiles.d/legacy.conf
 
-install -m644 %{SOURCE1} %{buildroot}%{_libdir}/tmpfiles.d/
+install -m644 %{SOURCE1} %{buildroot}%{_prefix}/lib/tmpfiles.d/
 
 rm -rf %{buildroot}/%{_prefix}/lib/systemd/user/default.target
 
