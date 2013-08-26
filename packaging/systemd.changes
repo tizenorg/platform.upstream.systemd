@@ -1,3 +1,6 @@
+* Tue Aug 27 2013 Jae-young Hwang <j-zero.hwang>
+- Modify reboot to support additional parameter
+
 * Thu Aug 01 2013 Michael I Doherty <michael.i.doherty@intel.com> submit/tizen/20130726.151754@0cc3906
 - (TZPC-4050) Add btrfs root device detection for read_ahead_kb tuning.
 - (TZPC-3533) Allow swap to be activated concurrently with sysinit target
