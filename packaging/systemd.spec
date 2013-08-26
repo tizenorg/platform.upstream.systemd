@@ -34,6 +34,7 @@ Requires(post): gawk
 Requires(pre):  coreutils
 Requires(pre):  /usr/bin/getent
 Requires(pre):  /usr/sbin/groupadd
+Patch1:			support-reboot-download.patch
 
 Obsoletes:      SysVinit < 2.86-24
 Obsoletes:      sysvinit < 2.86-24
@@ -108,6 +109,7 @@ glib-based applications using libudev functionality.
 %prep
 %setup -q
 cp %{SOURCE1001} .
+%patch1 -p1
 
 %build
 %autogen
