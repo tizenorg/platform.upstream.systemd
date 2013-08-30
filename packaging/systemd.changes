@@ -1,3 +1,11 @@
+* Fri Aug 30 2013 Mikko Ylinen <mikko.ylinen@intel.com> submit/tizen/20130826.060841@90cfb0c
+- systemd: record efi timestamps after /sys is mounted
+- install pamconsole-tmp.conf into /usr/lib/..
+- [systemd upgrade] Import platform restart from RSA
+- [systemd upgrade] Add pamconsole-tmp.conf from RSA
+- Suppress status message output at shutdown when 'quiet' is given
+  Backported from systemd upstream v206 Bug-Tizen: TZPC-3071
+
 * Thu Aug 01 2013 Michael I Doherty <michael.i.doherty@intel.com> submit/tizen/20130726.151754@0cc3906
 - (TZPC-4050) Add btrfs root device detection for read_ahead_kb tuning.
 - (TZPC-3533) Allow swap to be activated concurrently with sysinit target
