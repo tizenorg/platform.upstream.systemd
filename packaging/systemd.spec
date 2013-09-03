@@ -199,6 +199,11 @@ rm -rf %{buildroot}/%{_prefix}/lib/systemd/user/default.target
 
 
 rm -rf %{buildroot}/%{_docdir}/%{name}
+
+# Install platform_restart
+cd platform_restart
+make DESTDIR=%{buildroot} all
+
 %pre
 /usr/bin/getent group cdrom >/dev/null 2>&1 || /usr/sbin/groupadd -r -g 11 cdrom >/dev/null 2>&1 || :
 /usr/bin/getent group tape >/dev/null 2>&1 || /usr/sbin/groupadd -r -g 33 tape >/dev/null 2>&1 || :

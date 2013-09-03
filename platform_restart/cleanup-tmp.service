@@ -8,7 +8,7 @@ Before=pr-action.target pr-custom.target do-return.service
 [Service]
 Type=oneshot
 ExecStart=/bin/umount /tmp
-ExecStart=/bin/mount /tmp
+ExecStart=/bin/mount -t tmpfs -o mode=1777,strictatime /tmp
 
 [Install]
 WantedBy=pr-action.target
