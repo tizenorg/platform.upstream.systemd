@@ -1,5 +1,5 @@
 Name:           systemd
-Version:        204
+Version:        208
 Release:        0
 # For a breakdown of the licensing, see README
 License:        LGPL-2.0+ and MIT and GPL-2.0+
@@ -16,7 +16,7 @@ BuildRequires:  libacl-devel
 BuildRequires:  libblkid-devel >= 2.20
 BuildRequires:  libcap-devel
 BuildRequires:  libgcrypt-devel
-BuildRequires:  libkmod-devel >= 5
+BuildRequires:  libkmod-devel >= 14
 BuildRequires:  libxslt
 BuildRequires:  pam-devel
 BuildRequires:  pkgconfig
@@ -116,7 +116,8 @@ cp %{SOURCE1001} .
 	    --docdir=%{_docdir}/systemd \
         --disable-static \
         --with-sysvinit-path= \
-        --with-sysvrcnd-path=
+        --with-sysvrcnd-path= \
+        --with-smack-run-label=System
 make %{?_smp_mflags}
 
 %install
@@ -196,8 +197,13 @@ install -m644 %{SOURCE1} %{buildroot}%{_prefix}/lib/tmpfiles.d/
 
 rm -rf %{buildroot}/%{_prefix}/lib/systemd/user/default.target
 
-
 rm -rf %{buildroot}/%{_docdir}/%{name}
+
+# Move macros to the proper location for Tizen
+mkdir -p %{buildroot}%{_sysconfdir}/rpm
+install -m644 src/core/macros.systemd %{buildroot}%{_sysconfdir}/rpm/macros.systemd
+rm -f %{buildroot}%{_prefix}/lib/rpm/macros.d/macros.systemd
+
 %pre
 /usr/bin/getent group cdrom >/dev/null 2>&1 || /usr/sbin/groupadd -r -g 11 cdrom >/dev/null 2>&1 || :
 /usr/bin/getent group tape >/dev/null 2>&1 || /usr/sbin/groupadd -r -g 33 tape >/dev/null 2>&1 || :
@@ -243,8 +249,11 @@ fi
 %files
 %manifest %{name}.manifest
 %{_sysconfdir}/systemd/bootchart.conf
+%config %{_sysconfdir}/pam.d/systemd-user
 %{_bindir}/bootctl
 %{_bindir}/kernel-install
+%{_bindir}/machinectl
+%{_bindir}/systemd-run
 %dir %{_prefix}/lib/kernel
 %dir %{_prefix}/lib/kernel/install.d
 %{_prefix}/lib/kernel/install.d/50-depmod.install
@@ -262,6 +271,8 @@ fi
 %dir %{_sysconfdir}/modules-load.d
 %dir %{_sysconfdir}/binfmt.d
 %{_datadir}/bash-completion/*
+%dir %{_datadir}/zsh/site-functions
+%{_datadir}/zsh/site-functions/*
 %dir %{_sysconfdir}/udev
 %dir %{_sysconfdir}/udev/rules.d
 %dir %{_prefix}/lib/systemd
@@ -284,6 +295,7 @@ fi
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freedesktop.login1.conf
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freedesktop.locale1.conf
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freedesktop.timedate1.conf
+%config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freedesktop.machine1.conf
 %config(noreplace) %{_sysconfdir}/systemd/system.conf
 %config(noreplace) %{_sysconfdir}/systemd/user.conf
 %config(noreplace) %{_sysconfdir}/systemd/logind.conf
@@ -341,6 +353,7 @@ fi
 %{_prefix}/lib/systemd/system-generators/systemd-getty-generator
 %{_prefix}/lib/systemd/system-generators/systemd-fstab-generator
 %{_prefix}/lib/systemd/system-generators/systemd-system-update-generator
+%{_prefix}/lib/systemd/system-generators/systemd-gpt-auto-generator
 %{_prefix}/lib/tmpfiles.d/systemd.conf
 %{_prefix}/lib/tmpfiles.d/x11.conf
 %{_prefix}/lib/tmpfiles.d/tmp.conf
@@ -361,6 +374,7 @@ fi
 %{_datadir}/dbus-1/system-services/org.freedesktop.login1.service
 %{_datadir}/dbus-1/system-services/org.freedesktop.locale1.service
 %{_datadir}/dbus-1/system-services/org.freedesktop.timedate1.service
+%{_datadir}/dbus-1/system-services/org.freedesktop.machine1.service
 %{_datadir}/dbus-1/interfaces/org.freedesktop.systemd1.*.xml
 %{_datadir}/dbus-1/interfaces/org.freedesktop.hostname1.xml
 %{_datadir}/dbus-1/interfaces/org.freedesktop.locale1.xml

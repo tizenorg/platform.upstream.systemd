@@ -1,3 +1,48 @@
+* Thu Dec 19 2013 Casey Schaufler <casey@schaufler-ca.com> 2bbacda
+- Run systemd-journald with the hat ("^") Smack label.
+
+* Tue Dec 17 2013 Patrick McCarty <patrick.mccarty@linux.intel.com> ae18bbe
+- logind: spawn user instance after saving user data; fixes a systemd logind
+  race condition on bootup (TIVI-2407)
+
+* Thu Nov 21 2013 Patrick McCarty <patrick.mccarty@linux.intel.com> d1373b6
+- Update to v208 (TIVI-2197)
+
+* Sat Nov 16 2013 Patrick McCarty <patrick.mccarty@linux.intel.com> 4c21d4e
+- Remove temporary, permissive set of Smack rules (PTREL-109)
+
+* Mon Nov 11 2013 Rusty Lynch <rusty.lynch@intel.com> accepted/tizen/20131107.174334@d18b2ca
+- Set Smack ambient to match run label.
+
+* Thu Nov 07 2013 Sangjung Woo <sangjung.woo@samsung.com> accepted/tizen/20131106.204956@baedaee
+- [backport] Support additional argument in reboot (dropped on update to v212)
+
+* Tue Oct 15 2013 Michael Demeter <michael.demeter@intel.com> accepted/tizen/20130912.195607@92d089c
+- Add a permissive set of Smack rules
+- Smack enabled systems need /dev special devices correctly labeled
+
+* Fri Oct 11 2013 Michael Demeter <michael.demeter@intel.com> accepted/tizen/20130912.195607@82421d4
+- Smack enabled systems need /dev special devices correctly labeled
+- Add systemd-system.rule workaround to fix the boot
+- Add System label to systemd
+- Run with a custom SMACK domain (label).
+- Mount /run, /dev/shm usable to tasks when using SMACK.
+- Make it possible to disable smack separately from xattr support
+- smack-setup: fix path to Smack/CIPSO mappings
+- Update .changes for a new release
+
+* Fri Aug 30 2013 Mikko Ylinen <mikko.ylinen@intel.com> submit/tizen/20130826.060841@90cfb0c
+- systemd: record efi timestamps after /sys is mounted
+- install pamconsole-tmp.conf into /usr/lib/..
+- [systemd upgrade] Import platform restart from RSA
+- [systemd upgrade] Add pamconsole-tmp.conf from RSA
+- Suppress status message output at shutdown when 'quiet' is given
+  Backported from systemd upstream v206 Bug-Tizen: TZPC-3071
+
+* Thu Aug 01 2013 Michael I Doherty <michael.i.doherty@intel.com> submit/tizen/20130726.151754@0cc3906
+- (TZPC-4050) Add btrfs root device detection for read_ahead_kb tuning.
+- (TZPC-3533) Allow swap to be activated concurrently with sysinit target
+
 * Thu Jun 06 2013 Patrick McCarty <patrick.mccarty@linux.intel.com> aff9bf9
 - libsystemd: remove explicit dependency on systemd
 
