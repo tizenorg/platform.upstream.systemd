@@ -116,7 +116,8 @@ cp %{SOURCE1001} .
 	    --docdir=%{_docdir}/systemd \
         --disable-static \
         --with-sysvinit-path= \
-        --with-sysvrcnd-path=
+        --with-sysvrcnd-path= \
+        --with-smack-run-label=System
 make %{?_smp_mflags}
 
 %install
