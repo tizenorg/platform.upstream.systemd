@@ -9,6 +9,7 @@ Group:          Base/Startup
 Source0:        http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
 Source1:        pamconsole-tmp.conf
 Source1001: 	systemd.manifest
+Source1002:     systemd-system.rule
 BuildRequires:  gperf
 BuildRequires:  hwdata
 BuildRequires:  intltool >= 0.40.0
@@ -197,8 +198,12 @@ install -m644 %{SOURCE1} %{buildroot}%{_prefix}/lib/tmpfiles.d/
 
 rm -rf %{buildroot}/%{_prefix}/lib/systemd/user/default.target
 
-
 rm -rf %{buildroot}/%{_docdir}/%{name}
+
+# TODO: the .rule file should be removed once the Smack three-domain model is in place
+mkdir -p %{buildroot}%{_sysconfdir}/smack/accesses.d/
+install -m644 %{SOURCE1002} %{buildroot}%{_sysconfdir}/smack/accesses.d/systemd-system.rule
+
 %pre
 /usr/bin/getent group cdrom >/dev/null 2>&1 || /usr/sbin/groupadd -r -g 11 cdrom >/dev/null 2>&1 || :
 /usr/bin/getent group tape >/dev/null 2>&1 || /usr/sbin/groupadd -r -g 33 tape >/dev/null 2>&1 || :
@@ -243,6 +248,7 @@ fi
 
 %files
 %manifest %{name}.manifest
+%config %{_sysconfdir}/smack/accesses.d/systemd-system.rule
 %{_sysconfdir}/systemd/bootchart.conf
 %{_bindir}/bootctl
 %{_bindir}/kernel-install
