@@ -1,0 +1,10 @@
+Code-Review+2: Patrick McCarty <patrick.mccarty@linux.intel.com>
+Verified+1: Patrick McCarty <patrick.mccarty@linux.intel.com>
+Code-Review+1: Jae-young Hwang <j-zero.hwang@samsung.com>
+Verified+1: Jae-young Hwang <j-zero.hwang@samsung.com>
+Code-Review+1: Karol Lewandowski <k.lewandowsk@samsung.com>
+Submitted-by: william douglas <william.douglas@intel.com>
+Submitted-at: Tue, 08 Oct 2013 09:54:42 -0700
+Reviewed-on: https://review.tizen.org/gerrit/10592
+Project: platform/upstream/systemd
+Branch: refs/heads/tizen
