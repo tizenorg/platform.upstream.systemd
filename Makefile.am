@@ -3571,6 +3571,11 @@ dist_udevrules_DATA += \
 nodist_udevrules_DATA += \
 	rules/99-systemd.rules
 
+if HAVE_SMACK
+dist_udevrules_DATA += \
+	rules/55-udev-smack-default.rules
+endif
+
 udevconfdir = $(sysconfdir)/udev
 dist_udevconf_DATA = \
 	src/udev/udev.conf
