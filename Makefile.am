@@ -3303,6 +3303,11 @@ dist_udevrules_DATA += \
 nodist_udevrules_DATA += \
 	rules/99-systemd.rules
 
+if HAVE_SMACK
+dist_udevrules_DATA += \
+	rules/55-udev-smack-default.rules
+endif
+
 dist_udevhwdb_DATA = \
 	hwdb/20-pci-vendor-model.hwdb \
 	hwdb/20-pci-classes.hwdb \
