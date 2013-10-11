@@ -575,6 +575,7 @@ AS_HELP_STRING([--with-smack-run-label=STRING],
 
 if test "x${have_smack}" = xyes ; then
         AC_DEFINE(HAVE_SMACK, 1, [Define if SMACK is available])
+        AM_CONDITIONAL([HAVE_SMACK], [true])
 fi
 
 # ------------------------------------------------------------------------------
