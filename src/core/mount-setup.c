@@ -85,19 +85,23 @@ static const MountPoint mount_table[] = {
           mac_smack_use, MNT_FATAL                  },
         { "tmpfs",       "/dev/shm",                  "tmpfs",      "mode=1777,smackfsroot=*", MS_NOSUID|MS_NODEV|MS_STRICTATIME,
           mac_smack_use, MNT_FATAL                  },
-#endif
+#else
         { "tmpfs",       "/dev/shm",                  "tmpfs",      "mode=1777",               MS_NOSUID|MS_NODEV|MS_STRICTATIME,
           NULL,          MNT_FATAL|MNT_IN_CONTAINER },
+#endif
         { "devpts",      "/dev/pts",                  "devpts",     "mode=620,gid=" STRINGIFY(TTY_GID), MS_NOSUID|MS_NOEXEC,
           NULL,          MNT_IN_CONTAINER           },
 #ifdef HAVE_SMACK
-        { "tmpfs",       "/run",                      "tmpfs",      "mode=755,smackfsroot=*",  MS_NOSUID|MS_NODEV|MS_STRICTATIME,
-          mac_smack_use, MNT_FATAL                  },
-#endif
+        { "tmpfs",      "/run",                      "tmpfs",      "mode=755,smackfstransmute=System::Run", MS_NOSUID|MS_NODEV|MS_STRICTATIME,
+          mac_smack_use,  MNT_FATAL },
+        { "tmpfs",      "/sys/fs/cgroup",            "tmpfs",      "mode=755,smackfsroot=*", MS_NOSUID|MS_NOEXEC|MS_NODEV|MS_STRICTATIME,
+          mac_smack_use,  MNT_IN_CONTAINER },
+#else
         { "tmpfs",       "/run",                      "tmpfs",      "mode=755",                MS_NOSUID|MS_NODEV|MS_STRICTATIME,
           NULL,          MNT_FATAL|MNT_IN_CONTAINER },
         { "tmpfs",       "/sys/fs/cgroup",            "tmpfs",      "mode=755",                MS_NOSUID|MS_NOEXEC|MS_NODEV|MS_STRICTATIME,
           NULL,          MNT_FATAL|MNT_IN_CONTAINER },
+#endif
         { "cgroup",      "/sys/fs/cgroup/systemd",    "cgroup",     "none,name=systemd,xattr", MS_NOSUID|MS_NOEXEC|MS_NODEV,
           NULL,          MNT_IN_CONTAINER           },
         { "cgroup",      "/sys/fs/cgroup/systemd",    "cgroup",     "none,name=systemd",       MS_NOSUID|MS_NOEXEC|MS_NODEV,
