@@ -1,3 +1,13 @@
+* Fri Oct 11 2013 Michael Demeter <michael.demeter@intel.com> accepted/tizen/20130912.195607@82421d4
+- Smack enabled systems need /dev special devices correctly labeled
+- Add systemd-system.rule workaround to fix the boot
+- Add System label to systemd
+- Run with a custom SMACK domain (label).
+- Mount /run, /dev/shm usable to tasks when using SMACK.
+- Make it possible to disable smack separately from xattr support
+- smack-setup: fix path to Smack/CIPSO mappings
+- Update .changes for a new release
+
 * Fri Aug 30 2013 Mikko Ylinen <mikko.ylinen@intel.com> submit/tizen/20130826.060841@90cfb0c
 - systemd: record efi timestamps after /sys is mounted
 - install pamconsole-tmp.conf into /usr/lib/..
