@@ -2488,6 +2488,11 @@ dist_udevrules_DATA += \
 	rules/80-net-setup-link.rules \
 	rules/95-udev-late.rules
 
+if HAVE_SMACK
+dist_udevrules_DATA += \
+	rules/55-udev-smack-default.rules
+endif
+
 dist_udevhwdb_DATA = \
 	hwdb/20-pci-vendor-model.hwdb \
 	hwdb/20-pci-classes.hwdb \
