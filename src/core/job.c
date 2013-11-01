@@ -768,6 +768,13 @@ int job_finish_and_invalidate(Job *j, JobResult result, bool recursive) {
         log_debug_unit(u->id, "Job %s/%s finished, result=%s",
                        u->id, job_type_to_string(t), job_result_to_string(result));
 
+
+#ifdef EMULATOR
+        /* Boot progress monitoring for emulator */
+        j->manager->n_finished_jobs++;
+        j->manager->finished_cb(j);
+#endif
+
         job_print_status_message(u, t, result);
         job_log_status_message(u, t, result);
 

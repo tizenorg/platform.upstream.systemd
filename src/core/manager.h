@@ -228,6 +228,12 @@ struct Manager {
         unsigned n_installed_jobs;
         unsigned n_failed_jobs;
 
+#ifdef EMULATOR
+        /* Boot progress monitoring for emulator */
+        unsigned n_finished_jobs;
+        void (*finished_cb)(Job *j);
+#endif
+
         /* Jobs in progress watching */
         unsigned n_running_jobs;
         unsigned n_on_console;

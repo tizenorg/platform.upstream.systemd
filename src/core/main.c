@@ -1227,6 +1227,51 @@ static int initialize_join_controllers(void) {
         return 0;
 }
 
+
+#ifdef EMULATOR
+/* Boot progress monitoring for emulator */
+/* TODO: Separate as a service or binary, script,... */
+static void tizen_finished_cb(Job *j) {
+        Manager* m;
+        int installed;
+        int finished;
+        char mode;
+        char buf[5];
+        FILE* esm = NULL;
+
+        m = j->manager;
+        installed = m->n_installed_jobs;
+        finished = m->n_finished_jobs;
+
+        if (m->running_as == SYSTEMD_SYSTEM) {
+                mode = 'S';
+        } else {
+                mode = 'U';
+        }
+
+        if (installed == 0) {
+                log_warning("Progress monitor: progress calculation error.");
+                return;
+        }
+
+        sprintf(buf, "%c%u", mode, (int)(finished * 100 / installed));
+
+        log_debug("Progress monitor: Total queued [%d], Finished [%d], Progress [%s%%].",
+                installed, finished, buf);
+
+        esm = fopen("/dev/esm", "w+");
+        if (!esm) {
+                log_warning("Progress monitor: ESM open error.");
+        } else if(fputs(buf, esm) < 0) {
+                log_warning("Progress monitor: ESM write error.");
+        }
+
+        if(esm) {
+                fclose(esm);
+        }
+}
+#endif
+
 int main(int argc, char *argv[]) {
         Manager *m = NULL;
         int r, retval = EXIT_FAILURE;
@@ -1614,6 +1659,12 @@ int main(int argc, char *argv[]) {
                 log_error("Failed to allocate manager object: %s", strerror(-r));
                 goto finish;
         }
+
+#ifdef EMULATOR
+        /* Boot progress monitoring for emulator */
+        /* TODO: Not hard-coded */
+        m->finished_cb = &tizen_finished_cb;
+#endif
 
         m->confirm_spawn = arg_confirm_spawn;
         m->default_std_output = arg_default_std_output;

@@ -120,7 +120,11 @@ cp %{SOURCE1001} .
         --with-sysvinit-path= \
         --with-sysvrcnd-path= \
         --with-smack-run-label=System
+%if 0%{?simulator}
+make %{?_smp_mflags} CFLAGS="${CFLAGS} -DEMULATOR"
+%else
 make %{?_smp_mflags}
+%endif
 
 %install
 %make_install
