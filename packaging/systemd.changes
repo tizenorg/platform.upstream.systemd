@@ -1,3 +1,6 @@
+* Thu Nov 07 2013 Sangjung Woo <sangjung.woo@samsung.com> accepted/tizen/20131106.204956@baedaee
+- [backport] Support additional argument in reboot
+
 * Tue Oct 15 2013 Michael Demeter <michael.demeter@intel.com> accepted/tizen/20130912.195607@92d089c
 - Add a permissive set of Smack rules
 - Smack enabled systems need /dev special devices correctly labeled
