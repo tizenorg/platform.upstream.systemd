@@ -91,6 +91,10 @@ static const MountPoint mount_table[] = {
 #ifdef HAVE_SMACK
         { "tmpfs",      "/run",                      "tmpfs",      "mode=755,smackfsroot=*", MS_NOSUID|MS_NODEV|MS_STRICTATIME,
           use_smack,  MNT_FATAL },
+        { "tmpfs",      "/run",                      "tmpfs",      "mode=755,smackfstransmute=System::Run", MS_NOSUID|MS_NODEV|MS_STRICTATIME,
+          NULL,       MNT_IN_CONTAINER },
+        { "tmpfs",      "/sys/fs/cgroup",            "tmpfs",      "mode=755,smackfsroot=*", MS_NOSUID|MS_NOEXEC|MS_NODEV|MS_STRICTATIME,
+          NULL,       MNT_IN_CONTAINER },
 #endif
         { "tmpfs",      "/run",                      "tmpfs",      "mode=755", MS_NOSUID|MS_NODEV|MS_STRICTATIME,
           NULL,       MNT_FATAL|MNT_IN_CONTAINER },
