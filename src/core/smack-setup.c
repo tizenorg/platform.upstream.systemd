@@ -42,6 +42,7 @@
 
 #define SMACK_CONFIG "/etc/smack/accesses.d/"
 #define CIPSO_CONFIG "/etc/smack/cipso.d/"
+#define NETLABEL_CONFIG "/etc/smack/netlabel.d/"
 
 #ifdef HAVE_SMACK
 
@@ -146,6 +147,19 @@ int mac_smack_setup(bool *loaded_policy) {
         if (r)
                 log_warning("Failed to set SMACK label \"%s\" on self: %s",
                             SMACK_RUN_LABEL, strerror(-r));
+        r = write_string_file("/sys/fs/smackfs/ambient", SMACK_RUN_LABEL);
+        if (r)
+                log_warning("Failed to set SMACK ambient label \"%s\": %s",
+                            SMACK_RUN_LABEL, strerror(-r));
+        r = write_string_file("/sys/fs/smackfs/netlabel",
+			      "0.0.0.0/0 " SMACK_RUN_LABEL);
+        if (r)
+                log_warning("Failed to set SMACK netlabel rule \"%s\": %s",
+                            "0.0.0.0/0 " SMACK_RUN_LABEL, strerror(-r));
+        r = write_string_file("/sys/fs/smackfs/netlabel", "127.0.0.1 -CIPSO");
+        if (r)
+                log_warning("Failed to set SMACK netlabel rule \"%s\": %s",
+                            "127.0.0.1 -CIPSO", strerror(-r));
 #endif
 
         r = write_rules("/sys/fs/smackfs/cipso2", CIPSO_CONFIG);
@@ -155,14 +169,31 @@ int mac_smack_setup(bool *loaded_policy) {
                 return 0;
         case ENOENT:
                 log_debug("Smack/CIPSO access rules directory " CIPSO_CONFIG " not found");
-                return 0;
+                break;
         case 0:
                 log_info("Successfully loaded Smack/CIPSO policies.");
                 break;
         default:
                 log_warning("Failed to load Smack/CIPSO access rules: %s, ignoring.",
                             strerror(abs(r)));
+                break;
+        }
+
+        r = write_rules("/sys/fs/smackfs/netlabel", NETLABEL_CONFIG);
+        switch(r) {
+        case -ENOENT:
+                log_debug("Smack/CIPSO is not enabled in the kernel.");
                 return 0;
+        case ENOENT:
+                log_debug("Smack network host rules directory " NETLABEL_CONFIG " not found");
+                break;
+        case 0:
+                log_info("Successfully loaded Smack network host rules.");
+                break;
+        default:
+                log_warning("Failed to load Smack network host rules: %s, ignoring.",
+                            strerror(abs(r)));
+                break;
         }
 
         *loaded_policy = true;
