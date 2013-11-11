@@ -1,3 +1,6 @@
+* Mon Nov 11 2013 Rusty Lynch <rusty.lynch@intel.com> accepted/tizen/20131107.174334@d18b2ca
+- Set Smack ambient to match run label.
+
 * Tue Oct 15 2013 Michael Demeter <michael.demeter@intel.com> accepted/tizen/20130912.195607@92d089c
 - Add a permissive set of Smack rules
 - Smack enabled systems need /dev special devices correctly labeled
