@@ -6,6 +6,8 @@ KERNEL=="console", SMACK="*"
 KERNEL=="kmsg", SMACK="*"
 KERNEL=="video*", SMACK="*"
 KERNEL=="card*", SMACK="*"
+KERNEL=="ptmx", SMACK="*"
+KERNEL=="tty", SMACK="*"
 
 SUBSYSTEM=="graphics", GROUP="video", SMACK="*"
 SUBSYSTEM=="drm", GROUP="video", SMACK="*"
