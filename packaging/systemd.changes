@@ -1,5 +1,11 @@
+* Sat Nov 16 2013 Patrick McCarty <patrick.mccarty@linux.intel.com> 4c21d4e
+- Remove temporary, permissive set of Smack rules (PTREL-109)
+
 * Mon Nov 11 2013 Rusty Lynch <rusty.lynch@intel.com> accepted/tizen/20131107.174334@d18b2ca
 - Set Smack ambient to match run label.
+
+* Thu Nov 07 2013 Sangjung Woo <sangjung.woo@samsung.com> accepted/tizen/20131106.204956@baedaee
+- [backport] Support additional argument in reboot (dropped on update to v212)
 
 * Tue Oct 15 2013 Michael Demeter <michael.demeter@intel.com> accepted/tizen/20130912.195607@92d089c
 - Add a permissive set of Smack rules
