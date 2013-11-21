@@ -1,3 +1,6 @@
+* Thu Nov 21 2013 Patrick McCarty <patrick.mccarty@linux.intel.com> d1373b6
+- Update to v208 (TIVI-2197)
+
 * Sat Nov 16 2013 Patrick McCarty <patrick.mccarty@linux.intel.com> 4c21d4e
 - Remove temporary, permissive set of Smack rules (PTREL-109)
 
