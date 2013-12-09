@@ -94,7 +94,8 @@
         "  <property name=\"UtmpIdentifier\" type=\"s\" access=\"read\"/>\n" \
         "  <property name=\"IgnoreSIGPIPE\" type=\"b\" access=\"read\"/>\n" \
         "  <property name=\"NoNewPrivileges\" type=\"b\" access=\"read\"/>\n" \
-        "  <property name=\"SystemCallFilter\" type=\"au\" access=\"read\"/>\n"
+        "  <property name=\"SystemCallFilter\" type=\"au\" access=\"read\"/>\n" \
+        "  <property name=\"SmackExecLabel\" type=\"s\" access=\"read\"/>\n"
 
 #define BUS_EXEC_COMMAND_INTERFACE(name)                             \
         "  <property name=\"" name "\" type=\"a(sasbttuii)\" access=\"read\"/>\n"
