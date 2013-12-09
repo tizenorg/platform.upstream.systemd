@@ -420,6 +420,7 @@ const sd_bus_vtable bus_exec_vtable[] = {
         SD_BUS_PROPERTY("IgnoreSIGPIPE", "b", bus_property_get_bool, offsetof(ExecContext, ignore_sigpipe), SD_BUS_VTABLE_PROPERTY_CONST),
         SD_BUS_PROPERTY("NoNewPrivileges", "b", bus_property_get_bool, offsetof(ExecContext, no_new_privileges), SD_BUS_VTABLE_PROPERTY_CONST),
         SD_BUS_PROPERTY("SystemCallFilter", "au", property_get_syscall_filter, 0, SD_BUS_VTABLE_PROPERTY_CONST),
+        SD_BUS_PROPERTY("SmackExecLabel", "s", NULL, offsetof(ExecContext, smack_exec), SD_BUS_VTABLE_PROPERTY_CONST),
         SD_BUS_VTABLE_END
 };
 
@@ -512,3 +513,4 @@ int bus_property_get_exec_command_list(
 
         return sd_bus_message_close_container(reply);
 }
+
