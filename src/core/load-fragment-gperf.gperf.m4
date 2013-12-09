@@ -96,7 +96,9 @@ m4_ifdef(`HAVE_SELINUX',
 `$1.SELinuxContext,              config_parse_warn_compat,           0,                             0')
 m4_ifdef(`HAVE_APPARMOR',
 `$1.AppArmorProfile,              config_parse_exec_apparmor_profile,0,                             offsetof($1, exec_context)',
-`$1.AppArmorProfile,              config_parse_warn_compat,          0,                             0')'
+`$1.AppArmorProfile,              config_parse_warn_compat,          0,                             0')
+m4_ifdef(`HAVE_SMACK',
+`$1.SmackExecLabel,              config_parse_string,                0,                             offsetof($1, exec_context.smack_exec)')'
 )m4_dnl
 m4_define(`KILL_CONTEXT_CONFIG_ITEMS',
 `$1.SendSIGKILL,                 config_parse_bool,                  0,                             offsetof($1, kill_context.send_sigkill)
