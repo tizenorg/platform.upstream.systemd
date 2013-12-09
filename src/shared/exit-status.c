@@ -148,6 +148,9 @@ const char* exit_status_to_string(ExitStatus status, ExitStatusLevel level) {
 
                 case EXIT_MAKE_STARTER:
                         return "MAKE_STARTER";
+
+                case EXIT_SMACK:
+                        return "SMACK";
                 }
         }
 
