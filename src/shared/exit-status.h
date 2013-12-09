@@ -78,6 +78,7 @@ typedef enum ExitStatus {
         EXIT_MAKE_STARTER,
         EXIT_CHOWN,
         EXIT_BUS_ENDPOINT,
+        EXIT_SMACK
 } ExitStatus;
 
 typedef enum ExitStatusLevel {
