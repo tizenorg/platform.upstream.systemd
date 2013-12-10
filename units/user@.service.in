@@ -14,5 +14,6 @@ User=%i
 PAMName=systemd-user
 Type=notify
 ExecStart=-@rootlibexecdir@/systemd --user
+SmackExecLabel=User
 Slice=user-%i.slice
 KillMode=mixed
