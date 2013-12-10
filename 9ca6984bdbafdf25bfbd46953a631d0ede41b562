@@ -1,0 +1,9 @@
+Verified+1: Patrick McCarty <patrick.mccarty@linux.intel.com>
+Code-Review+2: Rusty Lynch <rusty.lynch@intel.com>
+Verified+1: Rusty Lynch <rusty.lynch@intel.com>
+Code-Review+1: Michael Demeter <michael.demeter@intel.com>
+Submitted-by: Rusty Lynch <rusty.lynch@intel.com>
+Submitted-at: Tue, 10 Dec 2013 15:53:43 -0800
+Reviewed-on: https://review.tizen.org/gerrit/13614
+Project: platform/upstream/systemd
+Branch: refs/heads/tizen
