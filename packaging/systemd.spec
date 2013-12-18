@@ -216,6 +216,9 @@ rm -f %{buildroot}%{_prefix}/lib/rpm/macros.d/macros.systemd
 /usr/bin/mv -n %{_sysconfdir}/systemd/systemd-logind.conf %{_sysconfdir}/systemd/logind.conf >/dev/null 2>&1 || :
 /usr/bin/mv -n %{_sysconfdir}/systemd/systemd-journald.conf %{_sysconfdir}/systemd/journald.conf >/dev/null 2>&1 || :
 
+# systemd-gpt-auto-generator has issues with eMMC devices
+rm -f %{_prefix}/lib/systemd/system-generators/systemd-gpt-boot-generator
+
 %post
 /usr/bin/systemd-machine-id-setup > /dev/null 2>&1 || :
 /usr/lib/systemd/systemd-random-seed save > /dev/null 2>&1 || :
