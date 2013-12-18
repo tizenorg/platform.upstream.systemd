@@ -1,0 +1,7 @@
+Code-Review+2: Casey Schaufler <casey.schaufler@intel.com>
+Verified+1: Patrick McCarty <patrick.mccarty@linux.intel.com>
+Submitted-by: Patrick McCarty <patrick.mccarty@linux.intel.com>
+Submitted-at: Wed, 18 Dec 2013 12:51:17 -0800
+Reviewed-on: https://review.tizen.org/gerrit/13942
+Project: platform/upstream/systemd
+Branch: refs/heads/tizen
