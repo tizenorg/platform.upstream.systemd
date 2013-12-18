@@ -1,3 +1,7 @@
+* Tue Dec 17 2013 Patrick McCarty <patrick.mccarty@linux.intel.com> ae18bbe
+- logind: spawn user instance after saving user data; fixes a systemd logind
+  race condition on bootup (TIVI-2407)
+
 * Thu Nov 21 2013 Patrick McCarty <patrick.mccarty@linux.intel.com> d1373b6
 - Update to v208 (TIVI-2197)
 
