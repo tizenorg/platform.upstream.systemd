@@ -414,11 +414,6 @@ int user_start(User *u) {
         if (r < 0)
                 return r;
 
-        /* Spawn user systemd */
-        r = user_start_service(u);
-        if (r < 0)
-                return r;
-
         if (!dual_timestamp_is_set(&u->timestamp))
                 dual_timestamp_get(&u->timestamp);
 
@@ -426,6 +421,11 @@ int user_start(User *u) {
 
         /* Save new user data */
         user_save(u);
+
+        /* Spawn user systemd */
+        r = user_start_service(u);
+        if (r < 0)
+                return r;
 
         user_send_signal(u, true);
 
