@@ -34,6 +34,8 @@ Requires(pre):  coreutils
 Requires(pre):  /usr/bin/getent
 Requires(pre):  /usr/sbin/groupadd
 
+Requires:       kdbus-bus
+
 Obsoletes:      SysVinit < 2.86-24
 Obsoletes:      sysvinit < 2.86-24
 Provides:       SysVinit = 2.86-24
