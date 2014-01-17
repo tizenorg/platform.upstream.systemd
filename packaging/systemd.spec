@@ -204,9 +204,6 @@ mkdir -p %{buildroot}%{_sysconfdir}/rpm
 install -m644 src/core/macros.systemd %{buildroot}%{_sysconfdir}/rpm/macros.systemd
 rm -f %{buildroot}%{_prefix}/lib/rpm/macros.d/macros.systemd
 
-# systemd-gpt-auto-generator has issues with eMMC devices
-rm -f %{buildroot}%{_prefix}/lib/systemd/system-generators/systemd-gpt-auto-generator
-
 %pre
 /usr/bin/getent group cdrom >/dev/null 2>&1 || /usr/sbin/groupadd -r -g 11 cdrom >/dev/null 2>&1 || :
 /usr/bin/getent group tape >/dev/null 2>&1 || /usr/sbin/groupadd -r -g 33 tape >/dev/null 2>&1 || :
@@ -356,6 +353,7 @@ fi
 %{_prefix}/lib/systemd/system-generators/systemd-getty-generator
 %{_prefix}/lib/systemd/system-generators/systemd-fstab-generator
 %{_prefix}/lib/systemd/system-generators/systemd-system-update-generator
+%{_prefix}/lib/systemd/system-generators/systemd-gpt-auto-generator
 %{_prefix}/lib/tmpfiles.d/systemd.conf
 %{_prefix}/lib/tmpfiles.d/x11.conf
 %{_prefix}/lib/tmpfiles.d/tmp.conf
