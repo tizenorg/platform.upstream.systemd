@@ -117,7 +117,9 @@ cp %{SOURCE1001} .
         --disable-static \
         --with-sysvinit-path= \
         --with-sysvrcnd-path= \
-        --with-smack-run-label=System
+        --with-smack-run-label=System \
+        --enable-kdbus
+
 make %{?_smp_mflags}
 
 %install
@@ -332,11 +334,12 @@ fi
 %{_bindir}/systemd-detect-virt
 %{_bindir}/systemd-inhibit
 %{_bindir}/udevadm
+%{_bindir}/busctl
 %{_prefix}/lib/sysctl.d/*.conf
 %{_prefix}/lib/systemd/systemd
 %{_prefix}/lib/systemd/system
 
-%dir /usr/lib/systemd/system/basic.target.wants
+%dir %{_prefix}/lib/systemd/system/basic.target.wants
 %dir %{_prefix}/lib/systemd/user
 %{_prefix}/lib/systemd/user/bluetooth.target
 %{_prefix}/lib/systemd/user/exit.target
@@ -348,10 +351,21 @@ fi
 %{_prefix}/lib/systemd/user/paths.target
 %{_prefix}/lib/systemd/user/smartcard.target
 %{_prefix}/lib/systemd/user/timers.target
+%{_prefix}/lib/systemd/user/busnames.target
+%{_prefix}/lib/systemd/user/basic.target
+%{_prefix}/lib/systemd/user/org.freedesktop.DBus.busname
+%{_prefix}/lib/systemd/user/systemd-bus-driverd.service
+%dir %{_prefix}/lib/systemd/user-generators
+%{_prefix}/lib/systemd/user-generators/systemd-dbus1-generator
+%dir %{_prefix}/lib/systemd/user/busnames.target.wants
+%{_prefix}/lib/systemd/user/busnames.target.wants/org.freedesktop.DBus.busname
 
 %{_prefix}/lib/systemd/systemd-*
 %dir %{_prefix}/lib/systemd/catalog
 %{_prefix}/lib/systemd/catalog/systemd.catalog
+%{_prefix}/lib/systemd/catalog/systemd.fr.catalog
+%{_prefix}/lib/systemd/catalog/systemd.it.catalog
+%{_prefix}/lib/systemd/catalog/systemd.ru.catalog
 %{_prefix}/lib/udev
 %{_prefix}/lib/systemd/system-generators/systemd-getty-generator
 %{_prefix}/lib/systemd/system-generators/systemd-fstab-generator
@@ -361,6 +375,7 @@ fi
 %{_prefix}/lib/tmpfiles.d/tmp.conf
 %{_prefix}/lib/tmpfiles.d/legacy.conf
 %{_prefix}/lib/tmpfiles.d/pamconsole-tmp.conf
+%{_prefix}/lib/tmpfiles.d/systemd-nologin.conf
 %{_sbindir}/init
 %{_sbindir}/reboot
 %{_sbindir}/halt
@@ -377,10 +392,6 @@ fi
 %{_datadir}/dbus-1/system-services/org.freedesktop.locale1.service
 %{_datadir}/dbus-1/system-services/org.freedesktop.timedate1.service
 %{_datadir}/dbus-1/system-services/org.freedesktop.machine1.service
-%{_datadir}/dbus-1/interfaces/org.freedesktop.systemd1.*.xml
-%{_datadir}/dbus-1/interfaces/org.freedesktop.hostname1.xml
-%{_datadir}/dbus-1/interfaces/org.freedesktop.locale1.xml
-%{_datadir}/dbus-1/interfaces/org.freedesktop.timedate1.xml
 %dir %{_datadir}/polkit-1
 %dir %{_datadir}/polkit-1/actions
 %{_datadir}/polkit-1/actions/org.freedesktop.systemd1.policy
@@ -390,6 +401,27 @@ fi
 %{_datadir}/polkit-1/actions/org.freedesktop.timedate1.policy
 %{_datadir}/pkgconfig/systemd.pc
 %{_datadir}/pkgconfig/udev.pc
+
+%{_prefix}/lib/systemd/network/99-default.link
+%{_prefix}/lib/systemd/system-generators/systemd-dbus1-generator
+%{_prefix}/lib/systemd/user/busnames.target
+%{_prefix}/lib/systemd/user/systemd-bus-proxyd.socket
+%{_prefix}/lib/systemd/user/systemd-bus-proxyd@.service
+
+%dir %{_datadir}/locale
+%dir %{_datadir}/locale/fr
+%dir %{_datadir}/locale/fr/LC_MESSAGES
+%{_datadir}/locale/fr/LC_MESSAGES/systemd.mo
+%dir %{_datadir}/locale/it
+%dir %{_datadir}/locale/it/LC_MESSAGES
+%{_datadir}/locale/it/LC_MESSAGES/systemd.mo
+%dir %{_datadir}/locale/pl
+%dir %{_datadir}/locale/pl/LC_MESSAGES
+%{_datadir}/locale/pl/LC_MESSAGES/systemd.mo
+%dir %{_datadir}/locale/ru
+%dir %{_datadir}/locale/ru/LC_MESSAGES
+%{_datadir}/locale/ru/LC_MESSAGES/systemd.mo
+
 
 # Make sure we don't remove runlevel targets from F14 alpha installs,
 # but make sure we don't create then anew.
@@ -407,6 +439,9 @@ fi
 %{_libdir}/libsystemd-id128.so.*
 %{_libdir}/libudev.so.*
 %{_libdir}/libnss_myhostname.so.2
+%{_libdir}/libsystemd.so
+%{_libdir}/libsystemd.so.*
+
 
 %files devel
 %manifest %{name}.manifest
@@ -422,13 +457,14 @@ fi
 %{_includedir}/systemd/sd-id128.h
 %{_includedir}/systemd/sd-messages.h
 %{_includedir}/systemd/sd-shutdown.h
+%{_includedir}/systemd/_sd-common.h
 %{_includedir}/libudev.h
 %{_libdir}/pkgconfig/libsystemd-daemon.pc
 %{_libdir}/pkgconfig/libsystemd-login.pc
 %{_libdir}/pkgconfig/libsystemd-journal.pc
 %{_libdir}/pkgconfig/libsystemd-id128.pc
 %{_libdir}/pkgconfig/libudev.pc
-
+%{_libdir}/pkgconfig/libsystemd.pc
 
 %files analyze
 %manifest %{name}.manifest

@@ -1949,7 +1949,8 @@ libsystemd_daemon_la_LIBADD =  \
 	$(RT_LIBS)
 
 pkginclude_HEADERS += \
-	src/systemd/sd-daemon.h
+	src/systemd/sd-daemon.h \
+	src/systemd/sd-shutdown.h
 
 # move lib from $(libdir) to $(rootlibdir) and update devel link, if needed
 libsystemd-daemon-install-hook:
