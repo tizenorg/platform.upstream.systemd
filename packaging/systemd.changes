@@ -4,11 +4,11 @@
 * Tue Jan 07 2014 Łukasz Stelmach <l.stelmach@samsung.com> ab41bb0
 - gpt-auto-generator: skip nonexistent devices (PTREL-552)
 
-* Wed Dec 18 2013 Łukasz Stelmach <l.stelmach@samsung.com> 90d6df1
-- Remove unused systemd-gpt-auto-generator (PTREL-552)
-
 * Thu Dec 19 2013 Casey Schaufler <casey@schaufler-ca.com> 2bbacda
 - Run systemd-journald with the hat ("^") Smack label.
+
+* Wed Dec 18 2013 Łukasz Stelmach <l.stelmach@samsung.com> 90d6df1
+- Remove unused systemd-gpt-auto-generator (PTREL-552)
 
 * Tue Dec 17 2013 Patrick McCarty <patrick.mccarty@linux.intel.com> ae18bbe
 - logind: spawn user instance after saving user data; fixes a systemd logind
