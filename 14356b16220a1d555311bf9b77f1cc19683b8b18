@@ -1,0 +1,9 @@
+Code-Review+2: Casey Schaufler <casey.schaufler@intel.com>
+Code-Review+1: Philippe Coval <philippe.coval@open.eurogiciel.org>
+Verified+1: Lukasz Stelmach <l.stelmach@samsung.com>
+Code-Review+1: Maciej Wereski <m.wereski@partner.samsung.com>
+Submitted-by: Lukasz Stelmach <l.stelmach@samsung.com>
+Submitted-at: Wed, 19 Feb 2014 00:34:32 -0800
+Reviewed-on: https://review.tizen.org/gerrit/16548
+Project: platform/upstream/systemd
+Branch: refs/heads/tizen
