@@ -36,6 +36,8 @@ Requires(pre):  coreutils
 Requires(pre):  /usr/bin/getent
 Requires(pre):  /usr/sbin/groupadd
 
+Requires:       kdbus-bus
+
 Obsoletes:      SysVinit < 2.86-24
 Obsoletes:      sysvinit < 2.86-24
 Provides:       SysVinit = 2.86-24
@@ -113,7 +115,8 @@ cp %{SOURCE1001} .
 %build
 %autogen
 %configure \
-	--enable-compat-libs \
+        --enable-kdbus \
+        --enable-compat-libs \
         --enable-bootchart \
         --libexecdir=%{_prefix}/lib \
 	    --docdir=%{_docdir}/systemd \
@@ -343,10 +346,14 @@ fi
 %{_prefix}/lib/sysctl.d/*.conf
 %{_prefix}/lib/systemd/systemd
 %{_prefix}/lib/systemd/system
-
 %dir %{_prefix}/lib/systemd/system/basic.target.wants
 %dir %{_prefix}/lib/systemd/user
 %dir %{_prefix}/lib/systemd/network
+%{_prefix}/lib/systemd/user/busnames.target.wants/org.freedesktop.DBus.busname
+%{_prefix}/lib/systemd/user/org.freedesktop.DBus.busname
+%{_prefix}/lib/systemd/user/systemd-bus-driverd.service
+%{_prefix}/lib/systemd/user/systemd-bus-proxyd@.service
+%{_prefix}/lib/systemd/user/systemd-bus-proxyd.socket
 %{_prefix}/lib/systemd/user/basic.target
 %{_prefix}/lib/systemd/user/bluetooth.target
 %{_prefix}/lib/systemd/user/exit.target
@@ -366,10 +373,12 @@ fi
 %dir %{_prefix}/lib/systemd/catalog
 %{_prefix}/lib/systemd/catalog/systemd.catalog
 %{_prefix}/lib/udev
+%{_prefix}/lib/systemd/system-generators/systemd-dbus1-generator
 %{_prefix}/lib/systemd/system-generators/systemd-getty-generator
 %{_prefix}/lib/systemd/system-generators/systemd-fstab-generator
 %{_prefix}/lib/systemd/system-generators/systemd-system-update-generator
 %{_prefix}/lib/systemd/system-generators/systemd-gpt-auto-generator
+%{_prefix}/lib/systemd/user-generators/systemd-dbus1-generator
 %{_prefix}/lib/tmpfiles.d/systemd.conf
 %{_prefix}/lib/tmpfiles.d/x11.conf
 %{_prefix}/lib/tmpfiles.d/tmp.conf
@@ -429,6 +438,15 @@ fi
 %{_libdir}/libsystemd-journal.so
 %{_libdir}/libsystemd-login.so
 %dir %{_includedir}/systemd
+%{_includedir}/systemd/sd-bus-protocol.h
+%{_includedir}/systemd/sd-bus-vtable.h
+%{_includedir}/systemd/sd-bus.h
+%{_includedir}/systemd/sd-event.h
+%{_includedir}/systemd/sd-memfd.h
+%{_includedir}/systemd/sd-resolve.h
+%{_includedir}/systemd/sd-rtnl.h
+%{_includedir}/systemd/sd-utf8.h
+%{_includedir}/systemd/_sd-common.h
 %{_includedir}/systemd/sd-daemon.h
 %{_includedir}/systemd/sd-login.h
 %{_includedir}/systemd/sd-journal.h
