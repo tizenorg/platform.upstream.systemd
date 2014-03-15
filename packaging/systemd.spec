@@ -114,7 +114,7 @@ cp %{SOURCE1001} .
 
 %build
 %autogen
-%configure \
+CFLAGS="-g -Os -ftrapv" %configure \
         --enable-kdbus \
         --enable-compat-libs \
         --enable-bootchart \
