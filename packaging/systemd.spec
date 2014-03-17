@@ -71,7 +71,9 @@ Libraries for systemd and udev, as well as the systemd PAM module.
 %package devel
 License:        LGPL-2.0+ and MIT
 Summary:        Development headers for systemd
-Requires:       %{name} = %{version}
+Requires:       %{name} = %{?epoch:%{epoch}:}%{version}-%{release}
+Requires:       libsystemd = %{?epoch:%{epoch}:}%{version}-%{release}
+Provides:       libsystemd-devel = %{version}
 Provides:       libudev-devel = %{version}
 Obsoletes:      libudev-devel < 183
 
