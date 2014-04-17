@@ -3222,6 +3222,12 @@ test_journal_SOURCES = \
 test_journal_LDADD = \
 	libsystemd-journal-core.la
 
+test_journal_dispatch_SOURCES = \
+	src/journal/test-journal-dispatch.c
+
+test_journal_dispatch_LDADD = \
+	libsystemd-journal-core.la
+
 test_journal_send_SOURCES = \
 	src/journal/test-journal-send.c
 
@@ -3363,6 +3369,7 @@ manual_tests += \
 
 tests += \
 	test-journal \
+	test-journal-dispatch \
 	test-journal-send \
 	test-journal-syslog \
 	test-journal-match \
