@@ -690,6 +690,8 @@ libsystemd_shared_la_SOURCES = \
 	src/shared/device-nodes.h \
 	src/shared/util.c \
 	src/shared/util.h \
+	src/shared/dbg.c \
+	src/shared/dbg.h \
 	src/shared/virt.c \
 	src/shared/virt.h \
 	src/shared/architecture.c \
