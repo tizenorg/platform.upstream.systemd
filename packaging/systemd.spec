@@ -8,7 +8,7 @@ Url:            http://www.freedesktop.org/wiki/Software/systemd
 Group:          Base/Startup
 Source0:        http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
 Source1:        pamconsole-tmp.conf
-Source1001: 	systemd.manifest
+Source1001:     systemd.manifest
 BuildRequires:  gperf
 BuildRequires:  hwdata
 BuildRequires:  intltool >= 0.40.0
@@ -114,12 +114,14 @@ cp %{SOURCE1001} .
 %configure \
         --enable-bootchart \
         --libexecdir=%{_prefix}/lib \
-	    --docdir=%{_docdir}/systemd \
+        --docdir=%{_docdir}/systemd \
         --disable-static \
         --with-sysvinit-path= \
         --with-sysvrcnd-path= \
         --with-smack-run-label=System
-make %{?_smp_mflags}
+make %{?_smp_mflags} \
+        systemunitdir=%{_unitdir} \
+        userunitdir=%{_unitdir_user}
 
 %install
 %make_install
