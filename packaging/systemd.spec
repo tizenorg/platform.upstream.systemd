@@ -1,5 +1,5 @@
 Name:           systemd
-Version:        208
+Version:        212
 Release:        0
 # For a breakdown of the licensing, see README
 License:        LGPL-2.0+ and MIT and GPL-2.0+
@@ -8,7 +8,7 @@ Url:            http://www.freedesktop.org/wiki/Software/systemd
 Group:          Base/Startup
 Source0:        http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
 Source1:        pamconsole-tmp.conf
-Source1001: 	systemd.manifest
+Source1001:     systemd.manifest
 BuildRequires:  gperf
 BuildRequires:  hwdata
 BuildRequires:  intltool >= 0.40.0
@@ -17,7 +17,8 @@ BuildRequires:  libblkid-devel >= 2.20
 BuildRequires:  libcap-devel
 BuildRequires:  libgcrypt-devel
 BuildRequires:  libkmod-devel >= 14
-BuildRequires:  libxslt
+BuildRequires:  xsltproc
+BuildRequires:  docbook-xsl-stylesheets
 BuildRequires:  pam-devel
 BuildRequires:  pkgconfig
 BuildRequires:  usbutils >= 0.82
@@ -25,6 +26,7 @@ BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(liblzma)
 BuildRequires:  pkgconfig(libpci)
+BuildRequires:  pkgconfig(libkmod)
 Requires:       dbus
 Requires:       filesystem
 Requires:       hwdata
@@ -68,6 +70,7 @@ Libraries for systemd and udev, as well as the systemd PAM module.
 License:        LGPL-2.0+ and MIT
 Summary:        Development headers for systemd
 Requires:       %{name} = %{version}
+Requires:		libsystemd = %{version}
 Provides:       libudev-devel = %{version}
 Obsoletes:      libudev-devel < 183
 
@@ -111,17 +114,27 @@ cp %{SOURCE1001} .
 %build
 %autogen
 %configure \
+        --enable-compat-libs \
         --enable-bootchart \
         --libexecdir=%{_prefix}/lib \
-	    --docdir=%{_docdir}/systemd \
+        --docdir=%{_docdir}/systemd \
         --disable-static \
         --with-sysvinit-path= \
         --with-sysvrcnd-path= \
-        --with-smack-run-label=System
-make %{?_smp_mflags}
+        --with-smack-run-label=System \
+        cc_cv_CFLAGS__flto=no
+make %{?_smp_mflags} \
+        systemunitdir=%{_unitdir} \
+        userunitdir=%{_unitdir_user}
 
 %install
 %make_install
+%find_lang %{name}
+cat <<EOF >> systemd.lang
+%lang(fr) /usr/lib/systemd/catalog/systemd.fr.catalog
+%lang(it) /usr/lib/systemd/catalog/systemd.it.catalog
+%lang(ru) /usr/lib/systemd/catalog/systemd.ru.catalog
+EOF
 
 # udev links
 /usr/bin/mkdir -p %{buildroot}/%{_sbindir}
@@ -245,12 +258,14 @@ fi
 %postun -n libgudev -p /sbin/ldconfig
 
 
+%lang_package
 
 %files
 %manifest %{name}.manifest
 %{_sysconfdir}/systemd/bootchart.conf
 %config %{_sysconfdir}/pam.d/systemd-user
 %{_bindir}/bootctl
+%{_bindir}/busctl
 %{_bindir}/kernel-install
 %{_bindir}/machinectl
 %{_bindir}/systemd-run
@@ -333,8 +348,10 @@ fi
 %{_prefix}/lib/systemd/systemd
 %{_prefix}/lib/systemd/system
 
-%dir /usr/lib/systemd/system/basic.target.wants
+%dir %{_prefix}/lib/systemd/system/basic.target.wants
 %dir %{_prefix}/lib/systemd/user
+%dir %{_prefix}/lib/systemd/network
+%{_prefix}/lib/systemd/user/basic.target
 %{_prefix}/lib/systemd/user/bluetooth.target
 %{_prefix}/lib/systemd/user/exit.target
 %{_prefix}/lib/systemd/user/printer.target
@@ -345,6 +362,9 @@ fi
 %{_prefix}/lib/systemd/user/paths.target
 %{_prefix}/lib/systemd/user/smartcard.target
 %{_prefix}/lib/systemd/user/timers.target
+%{_prefix}/lib/systemd/user/busnames.target
+%{_prefix}/lib/systemd/network/80-container-host0.network
+%{_prefix}/lib/systemd/network/99-default.link
 
 %{_prefix}/lib/systemd/systemd-*
 %dir %{_prefix}/lib/systemd/catalog
@@ -359,6 +379,7 @@ fi
 %{_prefix}/lib/tmpfiles.d/tmp.conf
 %{_prefix}/lib/tmpfiles.d/legacy.conf
 %{_prefix}/lib/tmpfiles.d/pamconsole-tmp.conf
+%{_prefix}/lib/tmpfiles.d/systemd-nologin.conf
 %{_sbindir}/init
 %{_sbindir}/reboot
 %{_sbindir}/halt
@@ -375,10 +396,6 @@ fi
 %{_datadir}/dbus-1/system-services/org.freedesktop.locale1.service
 %{_datadir}/dbus-1/system-services/org.freedesktop.timedate1.service
 %{_datadir}/dbus-1/system-services/org.freedesktop.machine1.service
-%{_datadir}/dbus-1/interfaces/org.freedesktop.systemd1.*.xml
-%{_datadir}/dbus-1/interfaces/org.freedesktop.hostname1.xml
-%{_datadir}/dbus-1/interfaces/org.freedesktop.locale1.xml
-%{_datadir}/dbus-1/interfaces/org.freedesktop.timedate1.xml
 %dir %{_datadir}/polkit-1
 %dir %{_datadir}/polkit-1/actions
 %{_datadir}/polkit-1/actions/org.freedesktop.systemd1.policy
@@ -399,33 +416,36 @@ fi
 %files -n libsystemd
 %manifest %{name}.manifest
 %{_libdir}/security/pam_systemd.so
-%{_libdir}/libsystemd-daemon.so.*
-%{_libdir}/libsystemd-login.so.*
-%{_libdir}/libsystemd-journal.so.*
-%{_libdir}/libsystemd-id128.so.*
+%{_libdir}/libsystemd.so.*
 %{_libdir}/libudev.so.*
+%{_libdir}/libsystemd-daemon.so.*
+%{_libdir}/libsystemd-id128.so.*
+%{_libdir}/libsystemd-journal.so.*
+%{_libdir}/libsystemd-login.so.*
 %{_libdir}/libnss_myhostname.so.2
 
 %files devel
 %manifest %{name}.manifest
-%{_libdir}/libsystemd-daemon.so
-%{_libdir}/libsystemd-login.so
-%{_libdir}/libsystemd-journal.so
-%{_libdir}/libsystemd-id128.so
 %{_libdir}/libudev.so
+%{_libdir}/libsystemd.so
+%{_libdir}/libsystemd-daemon.so
+%{_libdir}/libsystemd-id128.so
+%{_libdir}/libsystemd-journal.so
+%{_libdir}/libsystemd-login.so
 %dir %{_includedir}/systemd
 %{_includedir}/systemd/sd-daemon.h
 %{_includedir}/systemd/sd-login.h
 %{_includedir}/systemd/sd-journal.h
 %{_includedir}/systemd/sd-id128.h
 %{_includedir}/systemd/sd-messages.h
-%{_includedir}/systemd/sd-shutdown.h
+%{_includedir}/systemd/_sd-common.h
 %{_includedir}/libudev.h
-%{_libdir}/pkgconfig/libsystemd-daemon.pc
-%{_libdir}/pkgconfig/libsystemd-login.pc
-%{_libdir}/pkgconfig/libsystemd-journal.pc
-%{_libdir}/pkgconfig/libsystemd-id128.pc
 %{_libdir}/pkgconfig/libudev.pc
+%{_libdir}/pkgconfig/libsystemd.pc
+%{_libdir}/pkgconfig/libsystemd-daemon.pc
+%{_libdir}/pkgconfig/libsystemd-id128.pc
+%{_libdir}/pkgconfig/libsystemd-journal.pc
+%{_libdir}/pkgconfig/libsystemd-login.pc
 
 
 %files analyze
@@ -444,3 +464,4 @@ fi
 %{_includedir}/gudev-1.0/gudev/*.h
 %{_libdir}/pkgconfig/gudev-1.0*
 
+%docs_package
