@@ -2212,7 +2212,8 @@ dist_udevrules_DATA += \
 	rules/75-tty-description.rules \
 	rules/78-sound-card.rules \
 	rules/80-net-name-slot.rules \
-	rules/95-udev-late.rules
+	rules/95-udev-late.rules \
+	rules/99-dri.rules
 
 if HAVE_SMACK
 dist_udevrules_DATA += \
