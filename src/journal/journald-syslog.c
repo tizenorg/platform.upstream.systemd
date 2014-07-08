@@ -118,6 +118,9 @@ static void forward_syslog_raw(Server *s, int priority, const char *buffer, stru
         if (LOG_PRI(priority) > s->max_level_syslog)
                 return;
 
+        if (getsockopt(s->syslog_fd, SOL_SOCKET, SO_ERROR, NULL, NULL))
+                return;
+
         IOVEC_SET_STRING(iovec, buffer);
         forward_syslog_iovec(s, &iovec, 1, ucred, tv);
 }
@@ -136,6 +139,9 @@ void server_forward_syslog(Server *s, int priority, const char *identifier, cons
         assert(message);
 
         if (LOG_PRI(priority) > s->max_level_syslog)
+                return;
+
+        if (getsockopt(s->syslog_fd, SOL_SOCKET, SO_ERROR, NULL, NULL))
                 return;
 
         /* First: priority field */
