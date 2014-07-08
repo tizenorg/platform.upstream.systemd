@@ -110,8 +110,17 @@ glib-based applications using libudev functionality.
 cp %{SOURCE1001} .
 
 %build
-%autogen
-%configure \
+if which gtkdocize >/dev/null 2>/dev/null; then
+        gtkdocize --docdir docs/ --flavour no-tmpl
+        gtkdocargs=--enable-gtk-doc
+else
+        echo "You don't have gtk-doc installed, and thus won't be able to generate the documentation."
+        rm -f docs/gtk-doc.make
+        echo 'EXTRA_DIST =' > docs/gtk-doc.make
+fi
+
+intltoolize --force --automake
+%reconfigure \
         --enable-bootchart \
         --libexecdir=%{_prefix}/lib \
         --docdir=%{_docdir}/systemd \
@@ -119,7 +128,7 @@ cp %{SOURCE1001} .
         --with-sysvinit-path= \
         --with-sysvrcnd-path= \
         --with-smack-run-label=System
-make %{?_smp_mflags} \
+%__make %{?_smp_mflags} \
         systemunitdir=%{_unitdir} \
         userunitdir=%{_unitdir_user}
 
