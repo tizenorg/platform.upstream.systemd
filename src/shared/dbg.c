@@ -8,12 +8,12 @@
 
 #include "dbg.h"
 
-#define DBG_LOG_FILE        "/root/dbg_log.txt"
+#define DBG_LOG_FILE        "/dev/shm/dbg_log.txt"
 
 #define DBG_TIMER_STATS_RANGE 200
-#define DBG_TIMER_STATS_COUNT 100000
+#define DBG_TIMER_STATS_COUNT 10000
 
-#define DBG_TIMER_COUNT 100
+#define DBG_TIMER_COUNT 5
 
 static char asserted[25];
 
@@ -60,15 +60,15 @@ void dbg_time_now(void) {
         dbg_print("%s\n", buffer);
 }
 
-static void dbg_timer_stats(int time, const char *msg) {
-        static unsigned int stats[DBG_TIMER_STATS_RANGE] = { 0 };
+static void dbg_timer_stats(int index, int time, const char *msg) {
+        static unsigned int stats[DBG_TIMER_STATS_RANGE][DBG_TIMER_COUNT] = { { 0 }, { 0 } };
         static unsigned int count = 0;
         static unsigned int count_ovrange = 0;
-        int i, j;
+        int i, j, idx;
         const int rows = 25;
 
-        if (time < DBG_TIMER_STATS_RANGE) {
-                stats[time]++;
+        if (time > 0 && time < DBG_TIMER_STATS_RANGE) {
+                stats[time][index]++;
                 count++;
         } else {
                 count_ovrange++;
@@ -76,13 +76,15 @@ static void dbg_timer_stats(int time, const char *msg) {
         }
 
         if ((count+count_ovrange) >= DBG_TIMER_STATS_COUNT) {
-                dbg_print("%s\n", msg);
-                for (i = 0; i < rows; i++) {
-                        for (j = i; j < DBG_TIMER_STATS_RANGE; j+=rows) {
-                                dbg_print("%3d: %5d |\t", j, stats[j]);
-                                stats[j] = 0;
+                for (idx = 0; idx < DBG_TIMER_COUNT; idx++) {
+                        dbg_print("idx=%d, %s\n", idx, msg);
+                        for (i = 0; i < rows; i++) {
+                                for (j = i; j < DBG_TIMER_STATS_RANGE; j+=rows) {
+                                        dbg_print("%3d: %5d |\t", j, stats[j][idx]);
+                                        stats[j][idx] = 0;
+                                }
+                                dbg_print("\n");
                         }
-                        dbg_print("\n");
                 }
                 dbg_time_now();
                 dbg_print("samples = %d, over range = %d\n\n",
@@ -112,12 +114,12 @@ static void dbg_timer(int start, int index, const char *msg) {
 
         clock_gettime(CLOCK_REALTIME, &tend);
         telapsed = (long int)(tend.tv_nsec - tstart[index].tv_nsec);
-        if (start == 2) {
-                dbg_timer_stats(telapsed / 1000, msg);
+        if (start == 2 && telapsed > 0) {
+                dbg_timer_stats(index, telapsed / 10000, msg);
                 tactive[index] = 0;
                 return;
         }
-        dbg_print("%s %ld us%s\n",  msg, telapsed / 1000,
+        dbg_print("%s %ld us%s\n",  msg, telapsed / 10000,
                   tactive[index] == 2 ? " time in use!" : "");
         tactive[index] = 0;
 }
