@@ -75,9 +75,7 @@ static bool allow_object_pid(struct ucred *ucred) {
 void server_process_native_message(
                 Server *s,
                 const void *buffer, size_t buffer_size,
-                struct ucred *ucred,
-                struct timeval *tv,
-                const char *label, size_t label_len) {
+                struct procinfo *procinfo) {
 
         struct iovec *iovec = NULL;
         unsigned n = 0, j, tn = (unsigned) -1;
@@ -87,11 +85,19 @@ void server_process_native_message(
         char *identifier = NULL, *message = NULL;
         pid_t object_pid = 0;
 
+        struct ucred *ucred = NULL;
+        struct timeval *tv = NULL;
+
         assert(s);
         assert(buffer || buffer_size == 0);
 
         p = buffer;
         remaining = buffer_size;
+
+        if (procinfo) {
+                ucred = procinfo->ucred;
+                tv = procinfo->tv;
+        }
 
         while (remaining > 0) {
                 const char *e, *q;
@@ -106,7 +112,7 @@ void server_process_native_message(
 
                 if (e == p) {
                         /* Entry separator */
-                        server_dispatch_message(s, iovec, n, m, ucred, tv, label, label_len, NULL, priority, object_pid);
+                        server_dispatch_message(s, iovec, n, m, procinfo, NULL, priority, object_pid);
                         n = 0;
                         priority = LOG_INFO;
 
@@ -266,7 +272,7 @@ void server_process_native_message(
                         server_forward_wall(s, priority, identifier, message, ucred);
         }
 
-        server_dispatch_message(s, iovec, n, m, ucred, tv, label, label_len, NULL, priority, object_pid);
+        server_dispatch_message(s, iovec, n, m, procinfo, NULL, priority, object_pid);
 
 finish:
         for (j = 0; j < n; j++)  {
@@ -286,9 +292,7 @@ finish:
 void server_process_native_file(
                 Server *s,
                 int fd,
-                struct ucred *ucred,
-                struct timeval *tv,
-                const char *label, size_t label_len) {
+                struct procinfo *procinfo) {
 
         struct stat st;
         _cleanup_free_ void *p = NULL;
@@ -298,7 +302,7 @@ void server_process_native_file(
         assert(s);
         assert(fd >= 0);
 
-        if (!ucred || ucred->uid != 0) {
+        if (!procinfo || !procinfo->ucred || procinfo->ucred->uid != 0) {
                 _cleanup_free_ char *sl = NULL, *k = NULL;
                 const char *e;
 
@@ -362,7 +366,7 @@ void server_process_native_file(
         if (n < 0)
                 log_error("Failed to read file, ignoring: %s", strerror(-n));
         else if (n > 0)
-                server_process_native_message(s, p, n, ucred, tv, label, label_len);
+                server_process_native_message(s, p, n, procinfo);
 }
 
 int server_open_native_socket(Server*s) {

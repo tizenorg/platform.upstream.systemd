@@ -86,6 +86,7 @@ static int stdout_stream_log(StdoutStream *s, const char *p) {
         unsigned n = 0;
         char *label = NULL;
         size_t label_len = 0;
+        struct procinfo procinfo = { 0 };
 
         assert(s);
         assert(p);
@@ -137,7 +138,11 @@ static int stdout_stream_log(StdoutStream *s, const char *p) {
         }
 #endif
 
-        server_dispatch_message(s->server, iovec, n, ELEMENTSOF(iovec), &s->ucred, NULL, label, label_len, s->unit_id, priority, 0);
+        procinfo.ucred = &s->ucred;
+        procinfo.label = label;
+        procinfo.label_len = label_len;
+
+        server_dispatch_message(s->server, iovec, n, ELEMENTSOF(iovec), &procinfo, s->unit_id, priority, 0);
         return 0;
 }
 

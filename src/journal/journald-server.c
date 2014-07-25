@@ -52,6 +52,8 @@
 #include "journald-native.h"
 #include "journald-server.h"
 
+#include "dbg.h"
+
 #ifdef HAVE_ACL
 #include <sys/acl.h>
 #include <acl/libacl.h>
@@ -533,12 +535,34 @@ static void write_to_journal(Server *s, uid_t uid, struct iovec *iovec, unsigned
                 server_schedule_sync(s, priority);
 }
 
+static int get_cap(const char *status, const char *cap_name, char **cap_val)
+{
+        char *k, *l, *p;
+
+        if (!status || !cap_name)
+                return -1;
+
+        k = strstr(status, cap_name);
+        if (!k)
+                return -1;
+        k += strlen(cap_name);
+
+        p = strchr(k, '\n');
+        if (!p)
+                return -1;
+        l = strndup(k, p - k);
+        if (!l)
+                return -1;
+
+        *cap_val = l;
+
+        return 0;
+}
+
 static void dispatch_message_real(
                 Server *s,
                 struct iovec *iovec, unsigned n, unsigned m,
-                struct ucred *ucred,
-                struct timeval *tv,
-                const char *label, size_t label_len,
+                struct procinfo *procinfo,
                 const char *unit_id,
                 int priority,
                 pid_t object_pid) {
@@ -567,13 +591,28 @@ static void dispatch_message_real(
         uint32_t audit;
         uid_t loginuid;
 #endif
+        struct ucred *ucred = NULL;
+        struct timeval *tv = NULL;
+#ifdef HAVE_SELINUX
+        const char *label = NULL;
+        size_t label_len = 0;
+#endif
 
         assert(s);
         assert(iovec);
         assert(n > 0);
         assert(n + N_IOVEC_META_FIELDS + (object_pid ? N_IOVEC_OBJECT_FIELDS : 0) <= m);
 
-        if (ucred) {
+        if (procinfo) {
+                ucred = procinfo->ucred;
+                tv = procinfo->tv;
+#ifdef HAVE_SELINUX
+                label = procinfo->label;
+                label_len = procinfo->label_len;
+#endif
+        }
+
+        if (procinfo && procinfo->ucred) {
                 realuid = ucred->uid;
 
                 sprintf(pid, "_PID=%lu", (unsigned long) ucred->pid);
@@ -585,28 +624,47 @@ static void dispatch_message_real(
                 sprintf(gid, "_GID=%lu", (unsigned long) ucred->gid);
                 IOVEC_SET_STRING(iovec[n++], gid);
 
-                r = get_process_comm(ucred->pid, &t);
-                if (r >= 0) {
-                        x = strappenda("_COMM=", t);
-                        free(t);
+                if (procinfo->comm) {
+                        x = strappenda("_COMM=", procinfo->comm);
                         IOVEC_SET_STRING(iovec[n++], x);
+                } else {
+                        r = get_process_comm(ucred->pid, &t);
+                        if (r >= 0) {
+                                x = strappenda("_COMM=", t);
+                                free(t);
+                                IOVEC_SET_STRING(iovec[n++], x);
+                        }
                 }
 
-                r = get_process_exe(ucred->pid, &t);
-                if (r >= 0) {
-                        x = strappenda("_EXE=", t);
-                        free(t);
+                if (procinfo->exe) {
+                        x = strappenda("_EXE=", procinfo->exe);
                         IOVEC_SET_STRING(iovec[n++], x);
+                } else {
+                        r = get_process_exe(ucred->pid, &t);
+                        if (r >= 0) {
+                                x = strappenda("_EXE=", t);
+                                free(t);
+                                IOVEC_SET_STRING(iovec[n++], x);
+                        }
                 }
 
-                r = get_process_cmdline(ucred->pid, 0, false, &t);
-                if (r >= 0) {
-                        x = strappenda("_CMDLINE=", t);
-                        free(t);
+                if (procinfo->cmdline) {
+                        x = strappenda("_CMDLINE=", procinfo->cmdline);
                         IOVEC_SET_STRING(iovec[n++], x);
+                } else {
+                        r = get_process_cmdline(ucred->pid, 0, false, &t);
+                        if (r >= 0) {
+                                x = strappenda("_CMDLINE=", t);
+                                free(t);
+                                IOVEC_SET_STRING(iovec[n++], x);
+                        }
                 }
 
-                r = get_process_capeff(ucred->pid, &t);
+                r = -1;
+                if (procinfo->status)
+                        r = get_cap(procinfo->status, "CapEff:\t", &t);
+                if (r < 0)
+                        r = get_process_capeff(ucred->pid, &t);
                 if (r >= 0) {
                         x = strappenda("_CAP_EFFECTIVE=", t);
                         free(t);
@@ -825,6 +883,7 @@ void server_driver_message(Server *s, sd_id128_t message_id, const char *format,
         int n = 0;
         va_list ap;
         struct ucred ucred = {};
+        struct procinfo procinfo = {};
 
         assert(s);
         assert(format);
@@ -849,15 +908,15 @@ void server_driver_message(Server *s, sd_id128_t message_id, const char *format,
         ucred.uid = getuid();
         ucred.gid = getgid();
 
-        dispatch_message_real(s, iovec, n, ELEMENTSOF(iovec), &ucred, NULL, NULL, 0, NULL, LOG_INFO, 0);
+        procinfo.ucred = &ucred;
+
+        dispatch_message_real(s, iovec, n, ELEMENTSOF(iovec), &procinfo, NULL, LOG_INFO, 0);
 }
 
 void server_dispatch_message(
                 Server *s,
                 struct iovec *iovec, unsigned n, unsigned m,
-                struct ucred *ucred,
-                struct timeval *tv,
-                const char *label, size_t label_len,
+                struct procinfo *procinfo,
                 const char *unit_id,
                 int priority,
                 pid_t object_pid) {
@@ -865,9 +924,13 @@ void server_dispatch_message(
         int rl, r;
         _cleanup_free_ char *path = NULL;
         char *c;
+        struct ucred *ucred = NULL;
 
         assert(s);
         assert(iovec || n == 0);
+
+        if (procinfo)
+                ucred = procinfo->ucred;
 
         if (n == 0)
                 return;
@@ -915,7 +978,7 @@ void server_dispatch_message(
                                       "Suppressed %u messages from %s", rl - 1, path);
 
 finish:
-        dispatch_message_real(s, iovec, n, m, ucred, tv, label, label_len, unit_id, priority, object_pid);
+        dispatch_message_real(s, iovec, n, m, procinfo, unit_id, priority, object_pid);
 }
 
 
@@ -1122,6 +1185,9 @@ int process_datagram(sd_event_source *es, int fd, uint32_t revents, void *userda
                 char *label = NULL;
                 size_t label_len = 0;
                 struct iovec iovec;
+                struct procinfo procinfo;
+
+                memset(&procinfo, 0x00, sizeof(struct procinfo));
 
                 union {
                         struct cmsghdr cmsghdr;
@@ -1136,7 +1202,7 @@ int process_datagram(sd_event_source *es, int fd, uint32_t revents, void *userda
                         uint8_t buf[CMSG_SPACE(sizeof(struct ucred)) +
                                     CMSG_SPACE(sizeof(struct timeval)) +
                                     CMSG_SPACE(sizeof(int)) + /* fd */
-                                    CMSG_SPACE(NAME_MAX)]; /* selinux label */
+                                    CMSG_SPACE((NAME_MAX)]; /* selinux label */
                 } control = {};
                 struct msghdr msghdr = {
                         .msg_iov = &iovec,
@@ -1194,15 +1260,15 @@ int process_datagram(sd_event_source *es, int fd, uint32_t revents, void *userda
                 if (fd == s->syslog_fd) {
                         if (n > 0 && n_fds == 0) {
                                 s->buffer[n] = 0;
-                                server_process_syslog_message(s, strstrip(s->buffer), ucred, tv, label, label_len);
+                                server_process_syslog_message(s, strstrip(s->buffer), &procinfo);
                         } else if (n_fds > 0)
                                 log_warning("Got file descriptors via syslog socket. Ignoring.");
 
                 } else {
                         if (n > 0 && n_fds == 0)
-                                server_process_native_message(s, s->buffer, n, ucred, tv, label, label_len);
+                                server_process_native_message(s, s->buffer, n, &procinfo);
                         else if (n == 0 && n_fds == 1)
-                                server_process_native_file(s, fds[0], ucred, tv, label, label_len);
+                                server_process_native_file(s, fds[0], &procinfo);
                         else if (n_fds > 0)
                                 log_warning("Got too many file descriptors via native socket. Ignoring.");
                 }
