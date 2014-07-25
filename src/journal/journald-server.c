@@ -1202,7 +1202,7 @@ int process_datagram(sd_event_source *es, int fd, uint32_t revents, void *userda
                         uint8_t buf[CMSG_SPACE(sizeof(struct ucred)) +
                                     CMSG_SPACE(sizeof(struct timeval)) +
                                     CMSG_SPACE(sizeof(int)) + /* fd */
-                                    CMSG_SPACE((NAME_MAX)]; /* selinux label */
+                                    CMSG_SPACE(PATH_MAX)]; /* selinux label */
                 } control = {};
                 struct msghdr msghdr = {
                         .msg_iov = &iovec,
@@ -1254,6 +1254,30 @@ int process_datagram(sd_event_source *es, int fd, uint32_t revents, void *userda
                                  cmsg->cmsg_type == SCM_RIGHTS) {
                                 fds = (int*) CMSG_DATA(cmsg);
                                 n_fds = (cmsg->cmsg_len - CMSG_LEN(0)) / sizeof(int);
+                        }
+                        else if (cmsg->cmsg_level == SOL_SOCKET &&
+                                 cmsg->cmsg_type == SCM_PROCINFO) {
+
+                                unsigned int i;
+                                char *ptr = CMSG_DATA(cmsg);
+
+                                procinfo.ucred = ucred;
+                                procinfo.label = label;
+                                procinfo.label_len = label_len;
+                                procinfo.tv = tv;
+
+                                for (i = 0; i < cmsg->cmsg_len; i+=strlen(ptr+i)+1) {
+                                        if (strlen(ptr+i) == 0)
+                                                continue;
+                                        if (strncmp(ptr+i, "COMM=", strlen("COMM=")) == 0)
+                                                procinfo.comm = ptr+i+strlen("COMM=");
+                                        if (strncmp(ptr+i, "EXE=", strlen("EXE=")) == 0)
+                                                procinfo.exe = ptr+i+strlen("EXE=");
+                                        if (strncmp(ptr+i, "CMDLINE=", strlen("CMDLINE=")) == 0)
+                                                procinfo.cmdline = ptr+i+strlen("CMDLINE=");
+                                        if (strncmp(ptr+i, "STATUS=", strlen("STATUS=")) == 0)
+                                                procinfo.status = ptr+i+strlen("STATUS=");
+                                }
                         }
                 }
 

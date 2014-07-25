@@ -406,6 +406,13 @@ int server_open_native_socket(Server*s) {
                 return -errno;
         }
 
+        one = 1;
+        r = setsockopt(s->native_fd, SOL_SOCKET, 49/*SO_PASSPROC*/, &one, sizeof(one));
+        if (r < 0) {
+                log_error("SO_PASSPROC failed: %m");
+                return -errno;
+        }
+
 #ifdef HAVE_SELINUX
         if (use_selinux()) {
                 one = 1;
