@@ -136,7 +136,7 @@ intltoolize --force --automake
 %make_install
 
 # udev links
-%{_bindir}/mkdir -p %{buildroot}/%{_sbindir}
+%{_bindir}/mkdir -p %{buildroot}%{_sbindir}
 %{_bindir}/ln -sf ../bin/udevadm %{buildroot}%{_sbindir}/udevadm
 %{_bindir}/mkdir -p %{buildroot}%{_prefix}/lib/firmware/updates
 
@@ -207,9 +207,9 @@ install -Dm644 tmpfiles.d/legacy.conf %{buildroot}%{_prefix}/lib/tmpfiles.d/lega
 
 install -m644 %{SOURCE1} %{buildroot}%{_prefix}/lib/tmpfiles.d/
 
-rm -rf %{buildroot}/%{_prefix}/lib/systemd/user/default.target
+rm -rf %{buildroot}%{_prefix}/lib/systemd/user/default.target
 
-rm -rf %{buildroot}/%{_docdir}/%{name}
+rm -rf %{buildroot}%{_docdir}/%{name}
 
 # Move macros to the proper location for Tizen
 mkdir -p %{buildroot}%{_sysconfdir}/rpm
