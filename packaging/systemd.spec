@@ -113,14 +113,15 @@ cp %{SOURCE1001} .
 %build
 %autogen
 %configure \
-	--enable-compat-libs \
+        --enable-compat-libs \
         --enable-bootchart \
         --libexecdir=%{_prefix}/lib \
         --docdir=%{_docdir}/systemd \
         --disable-static \
         --with-sysvinit-path= \
         --with-sysvrcnd-path= \
-        --with-smack-run-label=System
+        --with-smack-run-label=System \
+        cc_cv_CFLAGS__flto=no
 make %{?_smp_mflags} \
         systemunitdir=%{_unitdir} \
         userunitdir=%{_unitdir_user}
