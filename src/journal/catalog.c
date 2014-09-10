@@ -76,7 +76,7 @@ unsigned long catalog_hash_func(const void *p, const uint8_t hash_key[HASH_KEY_S
 
         memcpy(mempcpy(v, &i->id, sizeof(i->id)), i->language, l);
 
-        siphash24((uint8_t*) &u, v, sz, hash_key);
+        siphash24_Kamil((uint8_t*) &u, v, sz, hash_key);
 
         return (unsigned long) u;
 }

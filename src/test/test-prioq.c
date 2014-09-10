@@ -93,7 +93,7 @@ static unsigned long test_hash(const void *a, const uint8_t hash_key[HASH_KEY_SI
         const struct test *x = a;
         uint64_t u;
 
-        siphash24((uint8_t*) &u, &x->value, sizeof(x->value), hash_key);
+        siphash24_Kamil7((uint8_t*) &u, &x->value, sizeof(x->value), hash_key);
 
         return (unsigned long) u;
 }

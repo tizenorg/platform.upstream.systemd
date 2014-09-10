@@ -29,7 +29,7 @@
 #include "macro.h"
 #include "siphash24.h"
 
-#define INITIAL_N_BUCKETS 31
+#define INITIAL_N_BUCKETS 32
 
 struct hashmap_entry {
         const void *key;
@@ -46,6 +46,7 @@ struct Hashmap {
 
         struct hashmap_entry ** buckets;
         unsigned n_buckets, n_entries;
+        unsigned long n_buckets_mask;
 
         uint8_t hash_key[HASH_KEY_SIZE];
         bool from_pool:1;
@@ -133,7 +134,7 @@ __attribute__((destructor)) static void cleanup_pool(void) {
 
 unsigned long string_hash_func(const void *p, const uint8_t hash_key[HASH_KEY_SIZE]) {
         uint64_t u;
-        siphash24((uint8_t*) &u, p, strlen(p), hash_key);
+        siphash24_Kamil2((uint8_t*) &u, p, strlen(p), hash_key);
         return (unsigned long) u;
 }
 
@@ -142,8 +143,31 @@ int string_compare_func(const void *a, const void *b) {
 }
 
 unsigned long trivial_hash_func(const void *p, const uint8_t hash_key[HASH_KEY_SIZE]) {
-        uint64_t u;
-        siphash24((uint8_t*) &u, &p, sizeof(p), hash_key);
+        uint64_t u = 0;
+        const unsigned char *c;
+        int i;
+
+        c = &p;
+
+/*        siphash24_Kamil3((uint8_t*) &u, &p, sizeof(p), hash_key);*/
+
+        for (i = 0; i < HASH_KEY_SIZE; i++) {
+                u += hash_key[i];
+                u += u << 10;
+                u ^= u >> 6;
+        }
+
+        for (i = 0; i < sizeof(p); i++) {
+                u += c[i];
+                u += (u << 10);
+                u ^= u >> 6;
+
+        }
+
+        u += u << 3;
+        u ^= u >> 11;
+        u += u << 15;
+
         return (unsigned long) u;
 }
 
@@ -153,7 +177,7 @@ int trivial_compare_func(const void *a, const void *b) {
 
 unsigned long uint64_hash_func(const void *p, const uint8_t hash_key[HASH_KEY_SIZE]) {
         uint64_t u;
-        siphash24((uint8_t*) &u, p, sizeof(uint64_t), hash_key);
+        siphash24_Kamil4((uint8_t*) &u, p, sizeof(uint64_t), hash_key);
         return (unsigned long) u;
 }
 
@@ -165,7 +189,7 @@ int uint64_compare_func(const void *_a, const void *_b) {
 }
 
 static unsigned bucket_hash(Hashmap *h, const void *p) {
-        return (unsigned) (h->hash_func(p, h->hash_key) % h->n_buckets);
+        return (unsigned) (h->hash_func(p, h->hash_key) & h->n_buckets_mask);
 }
 
 static void get_hash_key(uint8_t hash_key[HASH_KEY_SIZE], bool reuse_is_ok) {
@@ -213,6 +237,7 @@ Hashmap *hashmap_new(hash_func_t hash_func, compare_func_t compare_func) {
         h->compare_func = compare_func ? compare_func : trivial_compare_func;
 
         h->n_buckets = INITIAL_N_BUCKETS;
+        h->n_buckets_mask = h->n_buckets - 1;
         h->n_entries = 0;
         h->iterate_list_head = h->iterate_list_tail = NULL;
 
@@ -408,7 +433,9 @@ static bool resize_buckets(Hashmap *h) {
                 return false;
 
         /* Increase by four */
-        m = (h->n_entries+1)*4-1;
+//        m = (h->n_entries+1)*4-1;
+
+        m = h->n_buckets * 2;
 
         /* If we hit OOM we simply risk packed hashmaps... */
         n = new0(struct hashmap_entry*, m);
@@ -449,6 +476,7 @@ static bool resize_buckets(Hashmap *h) {
 
         h->buckets = n;
         h->n_buckets = m;
+        h->n_buckets_mask = (h->n_buckets_mask << 1) + 1;
 
         memcpy(h->hash_key, nkey, HASH_KEY_SIZE);
 

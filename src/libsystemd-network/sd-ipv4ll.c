@@ -505,7 +505,7 @@ int sd_ipv4ll_start (sd_ipv4ll *ll) {
                 uint8_t seed[8];
 
                 /* Fallback to mac */
-                siphash24(seed, &ll->mac_addr.ether_addr_octet,
+                siphash24_Kamil6(seed, &ll->mac_addr.ether_addr_octet,
                           ETH_ALEN, HASH_KEY.bytes);
 
                 r = sd_ipv4ll_set_address_seed(ll, seed);
