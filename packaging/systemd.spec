@@ -31,6 +31,7 @@ Requires:       filesystem
 Requires:       hwdata
 Requires(post): coreutils
 Requires(post): gawk
+Requires(post): /usr/bin/chsmack
 Requires(pre):  coreutils
 Requires(pre):  /usr/bin/getent
 Requires(pre):  /usr/sbin/groupadd
@@ -223,6 +224,7 @@ rm -f %{buildroot}%{_prefix}/lib/rpm/macros.d/macros.systemd
 /usr/lib/systemd/systemd-random-seed save > /dev/null 2>&1 || :
 /usr/bin/systemctl daemon-reexec > /dev/null 2>&1 || :
 /usr/bin/systemctl start systemd-udevd.service >/dev/null 2>&1 || :
+/usr/bin/chsmack -e System /lib/systemd/systemd-coredump 2>&1 || :
 
 %postun
 if [ $1 -ge 1 ] ; then
