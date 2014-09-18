@@ -176,9 +176,10 @@ _public_ int sd_journal_send(const char *format, ...) {
         va_list ap;
         struct iovec *iov = NULL;
 
-        va_start(ap, format);
-        i = fill_iovec_sprintf(format, ap, 0, &iov);
-        va_end(ap);
+//        va_start(ap, format);
+//        i = fill_iovec_sprintf(format, ap, 0, &iov);
+        i = 0;
+//      va_end(ap);
 
         if (_unlikely_(i < 0)) {
                 r = i;
@@ -505,9 +506,10 @@ _public_ int sd_journal_send_with_location(const char *file, const char *line, c
         struct iovec *iov = NULL;
         char *f;
 
-        va_start(ap, format);
-        i = fill_iovec_sprintf(format, ap, 3, &iov);
-        va_end(ap);
+  //      va_start(ap, format);
+//        i = fill_iovec_sprintf(format, ap, 3, &iov);
+    //    va_end(ap);
+        i = 0;
 
         if (_unlikely_(i < 0)) {
                 r = i;
