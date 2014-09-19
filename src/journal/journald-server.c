@@ -873,7 +873,7 @@ static void dispatch_message_real(
         else
                 journal_uid = 0;
 
-//        write_to_journal(s, journal_uid, iovec, n, priority);
+        write_to_journal(s, journal_uid, iovec, n, priority);
 }
 
 void server_driver_message(Server *s, sd_id128_t message_id, const char *format, ...) {
