@@ -18,3 +18,5 @@ ExecStart=-@rootlibexecdir@/systemd --user
 SmackExecLabel=User
 Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%I/dbus/user_bus_socket
 Slice=user-%i.slice
+Capabilities=cap_mac_admin,cap_setgid=i
+SecureBits=keep-caps
