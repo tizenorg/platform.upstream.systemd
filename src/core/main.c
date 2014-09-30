@@ -68,6 +68,7 @@
 #include "ima-setup.h"
 #include "fileio.h"
 #include "smack-setup.h"
+#include "boost-shutdown.h"
 
 static enum {
         ACTION_RUN,
@@ -1648,6 +1649,8 @@ int main(int argc, char *argv[]) {
                 }
         }
 
+        manager_load_boost_file(m);
+
         for (;;) {
                 r = manager_loop(m);
                 if (r < 0) {
@@ -1692,6 +1695,11 @@ int main(int argc, char *argv[]) {
                         log_notice("Switching root.");
                         goto finish;
 
+                case MANAGER_BOOST:
+                        log_notice("Boost shutting down.");
+                        manager_run_boost_cmds(m);
+                        //Fall into the exit case here.
+
                 case MANAGER_REBOOT:
                 case MANAGER_POWEROFF:
                 case MANAGER_HALT:
@@ -1699,6 +1707,7 @@ int main(int argc, char *argv[]) {
                         static const char * const table[_MANAGER_EXIT_CODE_MAX] = {
                                 [MANAGER_REBOOT] = "reboot",
                                 [MANAGER_POWEROFF] = "poweroff",
+                                [MANAGER_BOOST] = "boost",
                                 [MANAGER_HALT] = "halt",
                                 [MANAGER_KEXEC] = "kexec"
                         };

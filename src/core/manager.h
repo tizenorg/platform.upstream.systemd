@@ -46,6 +46,7 @@ typedef enum ManagerExitCode {
         MANAGER_HALT,
         MANAGER_KEXEC,
         MANAGER_SWITCH_ROOT,
+        MANAGER_BOOST,
         _MANAGER_EXIT_CODE_MAX,
         _MANAGER_EXIT_CODE_INVALID = -1
 } ManagerExitCode;
@@ -89,6 +90,7 @@ struct Watch {
 #include "path-lookup.h"
 #include "execute.h"
 #include "unit-name.h"
+#include "boost-shutdown.h"
 
 struct Manager {
         /* Note that the set of units we know of is allowed to be
@@ -124,6 +126,9 @@ struct Manager {
 
         /* Units that should be realized */
         LIST_HEAD(Unit, cgroup_queue);
+
+        /* quick shutdown cmds */
+        LIST_HEAD(struct QuickCmd, cmd_queue);
 
         Hashmap *watch_pids;  /* pid => Unit object n:1 */
 

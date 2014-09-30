@@ -136,6 +136,7 @@
         "  <method name=\"Exit\"/>\n"                                   \
         "  <method name=\"Reboot\"/>\n"                                 \
         "  <method name=\"PowerOff\"/>\n"                               \
+        "  <method name=\"Boost\"/>\n" 	                                \
         "  <method name=\"Halt\"/>\n"                                   \
         "  <method name=\"KExec\"/>\n"                                  \
         "  <method name=\"SwitchRoot\">\n"                              \
@@ -1292,6 +1293,21 @@ static DBusHandlerResult bus_manager_message_handler(DBusConnection *connection,
                         goto oom;
 
                 m->exit_code = MANAGER_POWEROFF;
+
+        }else if (dbus_message_is_method_call(message, "org.freedesktop.systemd1.Manager", "Boost")) {
+
+                SELINUX_ACCESS_CHECK(connection, message, "halt");
+
+                if (m->running_as != SYSTEMD_SYSTEM) {
+                        dbus_set_error(&error, BUS_ERROR_NOT_SUPPORTED, "Boost is only supported for system managers.");
+                        return bus_send_error_reply(connection, message, &error, -ENOTSUP);
+                }
+
+                reply = dbus_message_new_method_return(message);
+                if (!reply)
+                        goto oom;
+
+                m->exit_code = MANAGER_BOOST;
 
         } else if (dbus_message_is_method_call(message, "org.freedesktop.systemd1.Manager", "Halt")) {
 
