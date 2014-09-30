@@ -177,7 +177,7 @@ int main(int argc, char *argv[]) {
                 cmd = RB_AUTOBOOT;
                 /* if this fails, that's OK */
                 read_one_line_file(REBOOT_PARAM_FILE, &param);
-        } else if (streq(argv[1], "poweroff"))
+        } else if (streq(argv[1], "poweroff") || streq(argv[1], "boost"))
                 cmd = RB_POWER_OFF;
         else if (streq(argv[1], "halt"))
                 cmd = RB_HALT_SYSTEM;

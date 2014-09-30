@@ -107,6 +107,7 @@ static enum action {
         ACTION_SYSTEMCTL,
         ACTION_HALT,
         ACTION_POWEROFF,
+        ACTION_BOOST,
         ACTION_REBOOT,
         ACTION_KEXEC,
         ACTION_EXIT,
@@ -211,6 +212,7 @@ static void warn_wall(enum action a) {
                 [ACTION_HALT]            = "The system is going down for system halt NOW!",
                 [ACTION_REBOOT]          = "The system is going down for reboot NOW!",
                 [ACTION_POWEROFF]        = "The system is going down for power-off NOW!",
+                [ACTION_BOOST]           = "The system is going down for boost power-off NOW!",
                 [ACTION_KEXEC]           = "The system is going down for kexec reboot NOW!",
                 [ACTION_RESCUE]          = "The system is going down to rescue mode NOW!",
                 [ACTION_EMERGENCY]       = "The system is going down to emergency mode NOW!",
@@ -1907,6 +1909,7 @@ static const struct {
 } action_table[_ACTION_MAX] = {
         [ACTION_HALT]         = { SPECIAL_HALT_TARGET,         "halt",         "replace-irreversibly" },
         [ACTION_POWEROFF]     = { SPECIAL_POWEROFF_TARGET,     "poweroff",     "replace-irreversibly" },
+        [ACTION_BOOST]        = { SPECIAL_POWEROFF_TARGET,     "boost",        "replace-irreversibly" },
         [ACTION_REBOOT]       = { SPECIAL_REBOOT_TARGET,       "reboot",       "replace-irreversibly" },
         [ACTION_KEXEC]        = { SPECIAL_KEXEC_TARGET,        "kexec",        "replace-irreversibly" },
         [ACTION_RUNLEVEL2]    = { SPECIAL_RUNLEVEL2_TARGET,    NULL,           "isolate" },
@@ -2038,6 +2041,9 @@ static int reboot_with_logind(DBusConnection *bus, enum action a) {
         polkit_agent_open_if_enabled();
 
         switch (a) {
+        case ACTION_BOOST:
+                method = "Boost";
+                break;
 
         case ACTION_REBOOT:
                 method = "Reboot";
@@ -2156,6 +2162,7 @@ static int check_inhibitors(DBusConnection *bus, enum action a) {
                 if (!strv_contains(sv,
                                   a == ACTION_HALT ||
                                   a == ACTION_POWEROFF ||
+                                  a == ACTION_BOOST ||
                                   a == ACTION_REBOOT ||
                                   a == ACTION_KEXEC ? "shutdown" : "sleep"))
                         goto next;
@@ -2234,10 +2241,15 @@ static int start_special(DBusConnection *bus, char **args) {
         if (arg_force >= 1 &&
             (a == ACTION_HALT ||
              a == ACTION_POWEROFF ||
+             a == ACTION_BOOST ||
              a == ACTION_REBOOT ||
              a == ACTION_KEXEC ||
              a == ACTION_EXIT))
                 return daemon_reload(bus, args);
+
+        if (a == ACTION_BOOST) {
+                return daemon_reload(bus, args);
+        }
 
         /* first try logind, to allow authentication with polkit */
         if (geteuid() != 0 &&
@@ -4020,6 +4032,7 @@ static int daemon_reload(DBusConnection *bus, char **args) {
                         streq(args[0], "reset-failed")  ? "ResetFailed" :
                         streq(args[0], "halt")          ? "Halt" :
                         streq(args[0], "poweroff")      ? "PowerOff" :
+                        streq(args[0], "boost")         ? "Boost"  :
                         streq(args[0], "reboot")        ? "Reboot" :
                         streq(args[0], "kexec")         ? "KExec" :
                         streq(args[0], "exit")          ? "Exit" :
@@ -4753,6 +4766,8 @@ static int systemctl_help(void) {
                "     --runtime        Enable unit files only temporarily until next reboot\n"
                "  -f --force          When enabling unit files, override existing symlinks\n"
                "                      When shutting down, execute action immediately\n"
+               "  -b --boost          When shutting down rapidly, execute the shutdown.conf\n"
+               "                       commands and run -f action immediately\n"
                "     --root=PATH      Enable unit files in the specified root directory\n"
                "  -n --lines=INTEGER  Numer of journal entries to show\n"
                "  -o --output=STRING  Change journal output mode (short, short-monotonic,\n"
@@ -4838,6 +4853,7 @@ static int halt_help(void) {
                "  -p --poweroff  Switch off the machine\n"
                "     --reboot    Reboot the machine\n"
                "  -f --force     Force immediate halt/power-off/reboot\n"
+               "  -b --boost     halt rapidly halt/power-off/reboot\n"
                "  -w --wtmp-only Don't halt/power-off/reboot, just write wtmp record\n"
                "  -d --no-wtmp   Don't write wtmp record\n"
                "     --no-wall   Don't send wall message before halt/power-off/reboot\n",
@@ -4858,6 +4874,7 @@ static int shutdown_help(void) {
                "  -H --halt      Halt the machine\n"
                "  -P --poweroff  Power-off the machine\n"
                "  -r --reboot    Reboot the machine\n"
+               "  -b --boost     halt rapidly halt/power-off/reboot\n"
                "  -h             Equivalent to --poweroff, overridden by --halt\n"
                "  -k             Don't halt/power-off/reboot, just send warnings\n"
                "     --no-wall   Don't send wall message before halt/power-off/reboot\n"
@@ -5261,6 +5278,7 @@ static int halt_parse_argv(int argc, char *argv[]) {
                 { "help",      no_argument,       NULL, ARG_HELP    },
                 { "halt",      no_argument,       NULL, ARG_HALT    },
                 { "poweroff",  no_argument,       NULL, 'p'         },
+                { "boost",     no_argument,       NULL, 'b'         },
                 { "reboot",    no_argument,       NULL, ARG_REBOOT  },
                 { "force",     no_argument,       NULL, 'f'         },
                 { "wtmp-only", no_argument,       NULL, 'w'         },
@@ -5278,7 +5296,7 @@ static int halt_parse_argv(int argc, char *argv[]) {
                 if (runlevel == '0' || runlevel == '6')
                         arg_force = 2;
 
-        while ((c = getopt_long(argc, argv, "pfwdnih", options, NULL)) >= 0) {
+        while ((c = getopt_long(argc, argv, "pfbwdnih", options, NULL)) >= 0) {
                 switch (c) {
 
                 case ARG_HELP:
@@ -5300,6 +5318,10 @@ static int halt_parse_argv(int argc, char *argv[]) {
 
                 case 'f':
                         arg_force = 2;
+                        break;
+
+                case 'b':
+                        arg_force = 1;
                         break;
 
                 case 'w':
@@ -5632,7 +5654,12 @@ static int parse_argv(int argc, char *argv[]) {
                         arg_action = ACTION_HALT;
                         return halt_parse_argv(argc, argv);
                 } else if (strstr(program_invocation_short_name, "poweroff")) {
+                        log_warning("arg_action = ACTION_POWEROFF");
                         arg_action = ACTION_POWEROFF;
+                        return halt_parse_argv(argc, argv);
+                } else if (strstr(program_invocation_short_name, "boost")) {
+                        log_warning("arg_action = ACTION_BOOST");
+                        arg_action = ACTION_BOOST;
                         return halt_parse_argv(argc, argv);
                 } else if (strstr(program_invocation_short_name, "reboot")) {
                         if (kexec_loaded())
@@ -5768,6 +5795,7 @@ static int systemctl_main(DBusConnection *bus, int argc, char *argv[], DBusError
                 { "unset-environment",     MORE,  2, set_environment   },
                 { "halt",                  EQUAL, 1, start_special     },
                 { "poweroff",              EQUAL, 1, start_special     },
+				{ "boost",                 EQUAL, 1, start_special     },
                 { "reboot",                EQUAL, 1, start_special     },
                 { "kexec",                 EQUAL, 1, start_special     },
                 { "suspend",               EQUAL, 1, start_special     },
