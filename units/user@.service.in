@@ -18,3 +18,5 @@ SmackExecLabel=User
 Slice=user-%i.slice
 KillMode=mixed
 Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%U/dbus/user_bus_socket
+Capabilities=cap_mac_admin,cap_setgid=i
+SecureBits=keep-caps
