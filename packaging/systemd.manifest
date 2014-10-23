@@ -4,5 +4,6 @@
  </request>
  <assign>
    <filesystem path="/etc/locale.conf" label="System::Shared" />
+   <filesystem path="/usr/lib/systemd/systemd-coredump" label="System" exec_label="System" />
  </assign>
 </manifest>
