@@ -1,0 +1,12 @@
+# there is a lot of different manual pages sourcing others,
+# mostly in many-to-one manner
+addFilter('systemd-docs\..* files-duplicate /usr/share/man')
+
+# Unlike other packages which should not install their units config
+# files in /etc/systemd needs to put a few files there.
+addFilter('systemd\..* tizen-filelist-forbidden-systemd-userdirs /etc/systemd/[A-Za-z0-9]+\.conf')
+addFilter('systemd\..* tizen-filelist-forbidden-systemd-userdirs /etc/systemd/system ')
+addFilter('systemd\..* tizen-filelist-forbidden-systemd-userdirs /etc/systemd/user ')
+
+# TODO:
+#systemd.x86_64: W: non-conffile-in-etc /etc/rpm/macros.systemd
