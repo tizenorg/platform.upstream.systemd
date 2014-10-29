@@ -1,5 +1,5 @@
 Name:           systemd
-Version:        212
+Version:        217
 Release:        0
 # For a breakdown of the licensing, see README
 License:        LGPL-2.0+ and MIT and GPL-2.0+
@@ -8,6 +8,7 @@ Url:            http://www.freedesktop.org/wiki/Software/systemd
 Group:          Base/Startup
 Source0:        http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
 Source1:        pamconsole-tmp.conf
+Source2:        %{name}-rpmlintrc
 Source1001:     systemd.manifest
 BuildRequires:  gperf
 BuildRequires:  hwdata
@@ -114,8 +115,14 @@ cp %{SOURCE1001} .
 %build
 %autogen
 %configure \
+        --enable-kdbus \
         --enable-compat-libs \
         --enable-bootchart \
+        --disable-sysusers \
+        --disable-firstboot \
+        --disable-timesyncd \
+        --disable-resolved \
+        --disable-networkd \
         --libexecdir=%{_prefix}/lib \
         --docdir=%{_docdir}/systemd \
         --disable-static \
@@ -131,6 +138,7 @@ make %{?_smp_mflags} \
 %make_install
 %find_lang %{name}
 cat <<EOF >> systemd.lang
+%lang(pl) /usr/lib/systemd/catalog/systemd.pl.catalog
 %lang(fr) /usr/lib/systemd/catalog/systemd.fr.catalog
 %lang(it) /usr/lib/systemd/catalog/systemd.it.catalog
 %lang(ru) /usr/lib/systemd/catalog/systemd.ru.catalog
@@ -183,8 +191,6 @@ EOF
 /usr/bin/touch %{buildroot}%{_sysconfdir}/machine-id
 /usr/bin/touch %{buildroot}%{_sysconfdir}/machine-info
 /usr/bin/touch %{buildroot}%{_sysconfdir}/timezone
-#/usr/bin/mkdir -p %{buildroot}%{_sysconfdir}/X11/xorg.conf.d
-#/usr/bin/touch %{buildroot}%{_sysconfdir}/X11/xorg.conf.d/00-keyboard.conf
 
 /usr/bin/mkdir -p %{buildroot}%{_prefix}/lib/systemd/system-preset/
 /usr/bin/mkdir -p %{buildroot}%{_prefix}/lib/systemd/user-preset/
@@ -217,6 +223,11 @@ mkdir -p %{buildroot}%{_sysconfdir}/rpm
 install -m644 src/core/macros.systemd %{buildroot}%{_sysconfdir}/rpm/macros.systemd
 rm -f %{buildroot}%{_prefix}/lib/rpm/macros.d/macros.systemd
 
+# Exclude ELF binaries
+rm -f %{buildroot}/%{_prefix}/lib/systemd/system-generators/systemd-debug-generator
+rm -f %{buildroot}/%{_prefix}/lib/systemd/system-generators/systemd-hibernate-resume-generator
+
+# end of install
 %pre
 /usr/bin/getent group cdrom >/dev/null 2>&1 || /usr/sbin/groupadd -r -g 11 cdrom >/dev/null 2>&1 || :
 /usr/bin/getent group tape >/dev/null 2>&1 || /usr/sbin/groupadd -r -g 33 tape >/dev/null 2>&1 || :
@@ -262,7 +273,6 @@ fi
 
 %files
 %manifest %{name}.manifest
-%{_sysconfdir}/systemd/bootchart.conf
 %config %{_sysconfdir}/pam.d/systemd-user
 %{_bindir}/bootctl
 %{_bindir}/busctl
@@ -273,10 +283,9 @@ fi
 %dir %{_prefix}/lib/kernel/install.d
 %{_prefix}/lib/kernel/install.d/50-depmod.install
 %{_prefix}/lib/kernel/install.d/90-loaderentry.install
-%{_prefix}/lib/systemd/system-generators/systemd-efi-boot-generator
 %{_bindir}/hostnamectl
 %{_bindir}/localectl
-%{_bindir}/systemd-coredumpctl
+%{_bindir}/coredumpctl
 %{_bindir}/timedatectl
 %dir %{_sysconfdir}/systemd
 %dir %{_sysconfdir}/systemd/system
@@ -311,13 +320,13 @@ fi
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freedesktop.locale1.conf
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freedesktop.timedate1.conf
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freedesktop.machine1.conf
+%config(noreplace) %{_sysconfdir}/systemd/bootchart.conf
+%config(noreplace) %{_sysconfdir}/systemd/coredump.conf
 %config(noreplace) %{_sysconfdir}/systemd/system.conf
 %config(noreplace) %{_sysconfdir}/systemd/user.conf
 %config(noreplace) %{_sysconfdir}/systemd/logind.conf
 %config(noreplace) %{_sysconfdir}/systemd/journald.conf
 %config(noreplace) %{_sysconfdir}/udev/udev.conf
-#%{_sysconfdir}/bash_completion.d/systemd-bash-completion.sh
-%{_sysconfdir}/rpm/macros.systemd
 %{_sysconfdir}/xdg/systemd
 %ghost %config(noreplace) %{_sysconfdir}/hostname
 %ghost %config(noreplace) %{_sysconfdir}/vconsole.conf
@@ -344,6 +353,8 @@ fi
 %{_bindir}/systemd-detect-virt
 %{_bindir}/systemd-inhibit
 %{_bindir}/udevadm
+%{_bindir}/systemd-escape
+%{_bindir}/systemd-path
 %{_prefix}/lib/sysctl.d/*.conf
 %{_prefix}/lib/systemd/systemd
 %{_prefix}/lib/systemd/system
@@ -363,23 +374,33 @@ fi
 %{_prefix}/lib/systemd/user/smartcard.target
 %{_prefix}/lib/systemd/user/timers.target
 %{_prefix}/lib/systemd/user/busnames.target
-%{_prefix}/lib/systemd/network/80-container-host0.network
+%{_prefix}/lib/systemd/user/systemd-bus-proxyd.socket
+%{_prefix}/lib/systemd/user/systemd-bus-proxyd@.service
+%exclude %{_prefix}/lib/systemd/network/80-container-ve.network
+%exclude %{_prefix}/lib/systemd/network/80-container-host0.network
 %{_prefix}/lib/systemd/network/99-default.link
+%exclude %{_prefix}/lib/systemd/system-preset/90-systemd.preset
 
 %{_prefix}/lib/systemd/systemd-*
 %dir %{_prefix}/lib/systemd/catalog
 %{_prefix}/lib/systemd/catalog/systemd.catalog
 %{_prefix}/lib/udev
+%{_prefix}/lib/systemd/system-generators/systemd-efi-boot-generator
 %{_prefix}/lib/systemd/system-generators/systemd-getty-generator
 %{_prefix}/lib/systemd/system-generators/systemd-fstab-generator
 %{_prefix}/lib/systemd/system-generators/systemd-system-update-generator
 %{_prefix}/lib/systemd/system-generators/systemd-gpt-auto-generator
+%{_prefix}/lib/systemd/system-generators/systemd-dbus1-generator
+%{_prefix}/lib/systemd/user-generators/systemd-dbus1-generator
 %{_prefix}/lib/tmpfiles.d/systemd.conf
 %{_prefix}/lib/tmpfiles.d/x11.conf
 %{_prefix}/lib/tmpfiles.d/tmp.conf
 %{_prefix}/lib/tmpfiles.d/legacy.conf
 %{_prefix}/lib/tmpfiles.d/pamconsole-tmp.conf
 %{_prefix}/lib/tmpfiles.d/systemd-nologin.conf
+%{_prefix}/lib/tmpfiles.d/etc.conf
+%{_prefix}/lib/tmpfiles.d/systemd-remote.conf
+%{_prefix}/lib/tmpfiles.d/var.conf
 %{_sbindir}/init
 %{_sbindir}/reboot
 %{_sbindir}/halt
@@ -403,8 +424,9 @@ fi
 %{_datadir}/polkit-1/actions/org.freedesktop.login1.policy
 %{_datadir}/polkit-1/actions/org.freedesktop.locale1.policy
 %{_datadir}/polkit-1/actions/org.freedesktop.timedate1.policy
-%{_datadir}/pkgconfig/systemd.pc
-%{_datadir}/pkgconfig/udev.pc
+%exclude %{_datadir}/factory/etc/nsswitch.conf
+%exclude %{_datadir}/factory/etc/pam.d/other
+%exclude %{_datadir}/factory/etc/pam.d/system-auth
 
 # Make sure we don't remove runlevel targets from F14 alpha installs,
 # but make sure we don't create then anew.
@@ -423,6 +445,7 @@ fi
 %{_libdir}/libsystemd-journal.so.*
 %{_libdir}/libsystemd-login.so.*
 %{_libdir}/libnss_myhostname.so.2
+%{_libdir}/libnss_mymachines.so.2
 
 %files devel
 %manifest %{name}.manifest
@@ -433,12 +456,20 @@ fi
 %{_libdir}/libsystemd-journal.so
 %{_libdir}/libsystemd-login.so
 %dir %{_includedir}/systemd
-%{_includedir}/systemd/sd-daemon.h
-%{_includedir}/systemd/sd-login.h
-%{_includedir}/systemd/sd-journal.h
-%{_includedir}/systemd/sd-id128.h
-%{_includedir}/systemd/sd-messages.h
+%{_includedir}/systemd/sd-bus.h
+%{_includedir}/systemd/sd-bus-protocol.h
+%{_includedir}/systemd/sd-bus-vtable.h
 %{_includedir}/systemd/_sd-common.h
+%{_includedir}/systemd/sd-daemon.h
+%{_includedir}/systemd/sd-event.h
+%{_includedir}/systemd/sd-id128.h
+%{_includedir}/systemd/sd-journal.h
+%{_includedir}/systemd/sd-login.h
+%{_includedir}/systemd/sd-messages.h
+%{_includedir}/systemd/sd-path.h
+%{_includedir}/systemd/sd-resolve.h
+%{_includedir}/systemd/sd-rtnl.h
+%{_includedir}/systemd/sd-utf8.h
 %{_includedir}/libudev.h
 %{_libdir}/pkgconfig/libudev.pc
 %{_libdir}/pkgconfig/libsystemd.pc
@@ -446,7 +477,9 @@ fi
 %{_libdir}/pkgconfig/libsystemd-id128.pc
 %{_libdir}/pkgconfig/libsystemd-journal.pc
 %{_libdir}/pkgconfig/libsystemd-login.pc
-
+%{_datadir}/pkgconfig/systemd.pc
+%{_datadir}/pkgconfig/udev.pc
+%{_sysconfdir}/rpm/macros.systemd
 
 %files analyze
 %manifest %{name}.manifest
