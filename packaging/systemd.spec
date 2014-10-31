@@ -1,5 +1,5 @@
 Name:           systemd
-Version:        212
+Version:        216
 Release:        0
 # For a breakdown of the licensing, see README
 License:        LGPL-2.0+ and MIT and GPL-2.0+
@@ -116,6 +116,11 @@ cp %{SOURCE1001} .
 %configure \
         --enable-compat-libs \
         --enable-bootchart \
+        --disable-sysusers \
+        --disable-firstboot \
+        --disable-timesyncd \
+        --disable-resolved \
+        --disable-networkd \
         --libexecdir=%{_prefix}/lib \
         --docdir=%{_docdir}/systemd \
         --disable-static \
@@ -276,7 +281,7 @@ fi
 %{_prefix}/lib/systemd/system-generators/systemd-efi-boot-generator
 %{_bindir}/hostnamectl
 %{_bindir}/localectl
-%{_bindir}/systemd-coredumpctl
+%{_bindir}/coredumpctl
 %{_bindir}/timedatectl
 %dir %{_sysconfdir}/systemd
 %dir %{_sysconfdir}/systemd/system
@@ -305,6 +310,9 @@ fi
 %dir %{_prefix}/lib/firmware
 %dir %{_prefix}/lib/firmware/updates
 %dir %{_datadir}/systemd
+%dir %{_datadir}/factory
+%dir %{_datadir}/factory/etc
+%dir %{_datadir}/factory/etc/pam.d
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freedesktop.systemd1.conf
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freedesktop.hostname1.conf
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freedesktop.login1.conf
@@ -315,6 +323,7 @@ fi
 %config(noreplace) %{_sysconfdir}/systemd/user.conf
 %config(noreplace) %{_sysconfdir}/systemd/logind.conf
 %config(noreplace) %{_sysconfdir}/systemd/journald.conf
+%config(noreplace) %{_sysconfdir}/systemd/coredump.conf
 %config(noreplace) %{_sysconfdir}/udev/udev.conf
 #%{_sysconfdir}/bash_completion.d/systemd-bash-completion.sh
 %{_sysconfdir}/rpm/macros.systemd
@@ -343,6 +352,8 @@ fi
 %{_bindir}/systemd-delta
 %{_bindir}/systemd-detect-virt
 %{_bindir}/systemd-inhibit
+%{_bindir}/systemd-escape
+%{_bindir}/systemd-path
 %{_bindir}/udevadm
 %{_prefix}/lib/sysctl.d/*.conf
 %{_prefix}/lib/systemd/systemd
@@ -364,6 +375,7 @@ fi
 %{_prefix}/lib/systemd/user/timers.target
 %{_prefix}/lib/systemd/user/busnames.target
 %{_prefix}/lib/systemd/network/80-container-host0.network
+%{_prefix}/lib/systemd/network/80-container-ve.network
 %{_prefix}/lib/systemd/network/99-default.link
 
 %{_prefix}/lib/systemd/systemd-*
@@ -374,12 +386,17 @@ fi
 %{_prefix}/lib/systemd/system-generators/systemd-fstab-generator
 %{_prefix}/lib/systemd/system-generators/systemd-system-update-generator
 %{_prefix}/lib/systemd/system-generators/systemd-gpt-auto-generator
+%{_prefix}/lib/systemd/system-generators/systemd-debug-generator
+%{_prefix}/lib/systemd/system-preset/90-systemd.preset
 %{_prefix}/lib/tmpfiles.d/systemd.conf
 %{_prefix}/lib/tmpfiles.d/x11.conf
+%{_prefix}/lib/tmpfiles.d/etc.conf
 %{_prefix}/lib/tmpfiles.d/tmp.conf
+%{_prefix}/lib/tmpfiles.d/var.conf
 %{_prefix}/lib/tmpfiles.d/legacy.conf
 %{_prefix}/lib/tmpfiles.d/pamconsole-tmp.conf
 %{_prefix}/lib/tmpfiles.d/systemd-nologin.conf
+%{_prefix}/lib/tmpfiles.d/systemd-remote.conf
 %{_sbindir}/init
 %{_sbindir}/reboot
 %{_sbindir}/halt
@@ -388,6 +405,9 @@ fi
 %{_sbindir}/telinit
 %{_sbindir}/runlevel
 %{_sbindir}/udevadm
+%{_datadir}/factory/etc/nsswitch.conf
+%{_datadir}/factory/etc/pam.d/other
+%{_datadir}/factory/etc/pam.d/system-auth
 %{_datadir}/systemd/kbd-model-map
 %{_datadir}/dbus-1/services/org.freedesktop.systemd1.service
 %{_datadir}/dbus-1/system-services/org.freedesktop.systemd1.service
@@ -423,6 +443,7 @@ fi
 %{_libdir}/libsystemd-journal.so.*
 %{_libdir}/libsystemd-login.so.*
 %{_libdir}/libnss_myhostname.so.2
+%{_libdir}/libnss_mymachines.so.2
 
 %files devel
 %manifest %{name}.manifest
