@@ -208,8 +208,6 @@ install -Dm644 tmpfiles.d/legacy.conf %{buildroot}%{_prefix}/lib/tmpfiles.d/lega
 
 install -m644 %{SOURCE1} %{buildroot}%{_prefix}/lib/tmpfiles.d/
 
-rm -rf %{buildroot}/%{_prefix}/lib/systemd/user/default.target
-
 rm -rf %{buildroot}/%{_docdir}/%{name}
 
 # Move macros to the proper location for Tizen
@@ -247,8 +245,6 @@ if [ $1 -eq 0 ] ; then
                 remote-fs.target \
                 systemd-readahead-replay.service \
                 systemd-readahead-collect.service >/dev/null 2>&1 || :
-
-        /usr/bin/rm -f /etc/systemd/system/default.target >/dev/null 2>&1 || :
 fi
 
 %post -n libsystemd -p /sbin/ldconfig
@@ -363,6 +359,7 @@ fi
 %{_prefix}/lib/systemd/user/smartcard.target
 %{_prefix}/lib/systemd/user/timers.target
 %{_prefix}/lib/systemd/user/busnames.target
+%{_prefix}/lib/systemd/user/default.target
 %{_prefix}/lib/systemd/network/80-container-host0.network
 %{_prefix}/lib/systemd/network/99-default.link
 
