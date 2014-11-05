@@ -392,6 +392,7 @@ dist_sysctl_DATA = \
 	sysctl.d/50-default.conf
 
 dist_systemunit_DATA = \
+	units/default.target \
 	units/graphical.target \
 	units/multi-user.target \
 	units/emergency.service \
@@ -4949,7 +4950,6 @@ SYSTEM_UNIT_ALIASES += \
 endif
 
 SYSTEM_UNIT_ALIASES += \
-	graphical.target default.target \
 	reboot.target ctrl-alt-del.target \
 	getty@.service autovt@.service
 
