@@ -8,6 +8,8 @@ Url:            http://www.freedesktop.org/wiki/Software/systemd
 Group:          Base/Startup
 Source0:        http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
 Source1:        pamconsole-tmp.conf
+Source2:        default.target
+Source3:        default.target.ivi
 Source1001:     systemd.manifest
 BuildRequires:  gperf
 BuildRequires:  hwdata
@@ -208,7 +210,13 @@ install -Dm644 tmpfiles.d/legacy.conf %{buildroot}%{_prefix}/lib/tmpfiles.d/lega
 
 install -m644 %{SOURCE1} %{buildroot}%{_prefix}/lib/tmpfiles.d/
 
-rm -rf %{buildroot}/%{_prefix}/lib/systemd/user/default.target
+rm -f %{buildroot}/%{_prefix}/lib/systemd/system/default.target
+install -m 755 -d %{buildroot}/%{_prefix}/lib/systemd/system
+%if "%{profile}" != "ivi"
+install -m 644 %{SOURCE2} %{buildroot}/%{_prefix}/lib/systemd/system/
+%else
+install -m 644 %{SOURCE3} %{buildroot}/%{_prefix}/lib/systemd/system/default.target
+%endif
 
 rm -rf %{buildroot}/%{_docdir}/%{name}
 
@@ -247,8 +255,6 @@ if [ $1 -eq 0 ] ; then
                 remote-fs.target \
                 systemd-readahead-replay.service \
                 systemd-readahead-collect.service >/dev/null 2>&1 || :
-
-        /usr/bin/rm -f /etc/systemd/system/default.target >/dev/null 2>&1 || :
 fi
 
 %post -n libsystemd -p /sbin/ldconfig
@@ -363,6 +369,7 @@ fi
 %{_prefix}/lib/systemd/user/smartcard.target
 %{_prefix}/lib/systemd/user/timers.target
 %{_prefix}/lib/systemd/user/busnames.target
+%{_prefix}/lib/systemd/user/default.target
 %{_prefix}/lib/systemd/network/80-container-host0.network
 %{_prefix}/lib/systemd/network/99-default.link
 
