@@ -7,6 +7,8 @@
 
 g systemd-journal   - -
 u systemd-bus-proxy - "systemd Bus Proxy"
+m4_ifdef(`ENABLE_NETWORKD',
 u systemd-network   - "systemd Network Management"
+)m4_dnl
 u systemd-resolve   - "systemd Resolver"
 u systemd-timesync  - "systemd Time Synchronization"
