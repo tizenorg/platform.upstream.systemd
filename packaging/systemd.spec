@@ -219,10 +219,6 @@ EOF
 # Install modprobe fragment
 /usr/bin/mkdir -p %{buildroot}%{_sysconfdir}/modprobe.d/
 
-# Enable readahead services
-/usr/bin/ln -s ../systemd-readahead-collect.service %{buildroot}%{_prefix}/lib/systemd/system/default.target.wants/
-/usr/bin/ln -s ../systemd-readahead-replay.service %{buildroot}%{_prefix}/lib/systemd/system/default.target.wants/
-
 # Fix the dangling /var/lock -> /run/lock symlink
 install -Dm644 tmpfiles.d/legacy.conf %{buildroot}%{_prefix}/lib/tmpfiles.d/legacy.conf
 
@@ -237,6 +233,14 @@ install -m 644 %{SOURCE4} %{buildroot}/%{_prefix}/lib/systemd/system/default.tar
 %endif
 
 rm -rf %{buildroot}/%{_docdir}/%{name}
+
+# Disable some useless services in Tizen
+rm -rf %{buildroot}/%{_prefix}/lib/systemd/system/sysinit.target.wants/dev-hugepages.mount
+rm -rf %{buildroot}/%{_prefix}/lib/systemd/system/sysinit.target.wants/sys-fs-fuse-connections.mount
+rm -rf %{buildroot}/%{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-binfmt.service
+rm -rf %{buildroot}/%{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-modules-load.service
+rm -rf %{buildroot}/%{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-ask-password-console.path
+rm -rf %{buildroot}/%{_prefix}/lib/systemd/system/multi-user.target.wants/systemd-ask-password-wall.path
 
 # Move macros to the proper location for Tizen
 mkdir -p %{buildroot}%{_sysconfdir}/rpm
