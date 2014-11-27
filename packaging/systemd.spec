@@ -39,7 +39,11 @@ BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(liblzma)
 BuildRequires:  pkgconfig(libpci)
 BuildRequires:  pkgconfig(libkmod)
+%if %{with kdbus}
+Requires:       kdbus-kmod
+%else
 Requires:       dbus
+%endif
 Requires:       filesystem
 Requires:       hwdata
 Requires(post): coreutils
