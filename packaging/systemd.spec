@@ -230,6 +230,27 @@ rm -f %{buildroot}%{_prefix}/lib/rpm/macros.d/macros.systemd
 /usr/bin/systemctl daemon-reexec > /dev/null 2>&1 || :
 /usr/bin/systemctl start systemd-udevd.service >/dev/null 2>&1 || :
 
+# Mask some useless services
+/usr/bin/systemctl mask dev-hugepages.mount
+/usr/bin/systemctl mask sys-fs-fuse-connections.mount
+/usr/bin/systemctl mask sys-kernel-config.mount
+/usr/bin/systemctl mask systemd-binfmt.service
+/usr/bin/systemctl mask systemd-modules-load.service
+
+/usr/bin/systemctl mask dracut-cmdline.service
+/usr/bin/systemctl mask dracut-initqueue.service
+/usr/bin/systemctl mask dracut-mount.service
+/usr/bin/systemctl mask dracut-pre-mount.service
+/usr/bin/systemctl mask dracut-pre-pivot.service
+/usr/bin/systemctl mask dracut-pre-trigger.service
+/usr/bin/systemctl mask dracut-pre-udev.service
+/usr/bin/systemctl mask dracut-shutdown.service
+
+/usr/bin/systemctl mask systemd-ask-password-console.path
+/usr/bin/systemctl mask systemd-ask-password-console.service
+/usr/bin/systemctl mask systemd-ask-password-wall.path
+/usr/bin/systemctl mask systemd-ask-password-wall.service
+
 %postun
 if [ $1 -ge 1 ] ; then
         /usr/bin/systemctl daemon-reload > /dev/null 2>&1 || :
