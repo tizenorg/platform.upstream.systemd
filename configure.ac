@@ -954,6 +954,7 @@ have_timesyncd=no
 AC_ARG_ENABLE(timesyncd, AS_HELP_STRING([--disable-timesyncd], [disable timesync daemon]))
 if test "x$enable_timesyncd" != "xno"; then
         have_timesyncd=yes
+        M4_DEFINES="$M4_DEFINES -DENABLE_TIMESYNCD"
 fi
 AM_CONDITIONAL(ENABLE_TIMESYNCD, [test "$have_timesyncd" = "yes"])
 
@@ -1024,6 +1025,7 @@ have_resolved=no
 AC_ARG_ENABLE(resolved, AS_HELP_STRING([--disable-resolved], [disable resolve daemon]))
 if test "x$enable_resolved" != "xno"; then
         have_resolved=yes
+        M4_DEFINES="$M4_DEFINES -DENABLE_RESOLVED"
 fi
 AM_CONDITIONAL(ENABLE_RESOLVED, [test "$have_resolved" = "yes"])
 
