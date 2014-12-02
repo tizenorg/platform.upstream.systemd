@@ -234,6 +234,14 @@ install -m 644 %{SOURCE4} %{buildroot}/%{_prefix}/lib/systemd/system/default.tar
 
 rm -rf %{buildroot}/%{_docdir}/%{name}
 
+# Disable some useless services in Tizen
+rm -rf %{buildroot}/%{_prefix}/lib/systemd/system/sysinit.target.wants/dev-hugepages.mount
+rm -rf %{buildroot}/%{_prefix}/lib/systemd/system/sysinit.target.wants/sys-fs-fuse-connections.mount
+rm -rf %{buildroot}/%{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-binfmt.service
+rm -rf %{buildroot}/%{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-modules-load.service
+rm -rf %{buildroot}/%{_prefix}/lib/systemd/system/sysinit.target.wants/systemd-ask-password-console.path
+rm -rf %{buildroot}/%{_prefix}/lib/systemd/system/multi-user.target.wants/systemd-ask-password-wall.path
+
 # Move macros to the proper location for Tizen
 mkdir -p %{buildroot}%{_sysconfdir}/rpm
 install -m644 src/core/macros.systemd %{buildroot}%{_sysconfdir}/rpm/macros.systemd
