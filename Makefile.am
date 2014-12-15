@@ -5980,7 +5980,7 @@ dist: dist-check-python dist-check-compat-libs
 # check "broken" platforms limited toolchains for link breakage before we release
 .PHONY: linkcheck
 linkcheck:
-	$(MAKE) CFLAGS='-fno-lto' LDFLAGS='-Wl,-fuse-ld=gold -Wl,--as-needed -Wl,--no-gc-sections' distcheck
+	$(MAKE) CFLAGS='-fno-lto' LDFLAGS='-Wl,-fuse-ld=bfd -Wl,--as-needed -Wl,--no-gc-sections' distcheck
 
 .PHONY: hwdb-update
 hwdb-update:

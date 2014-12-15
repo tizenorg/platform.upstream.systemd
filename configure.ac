@@ -218,7 +218,7 @@ CC_CHECK_FLAGS_APPEND([with_ldflags], [LDFLAGS], [\
         -Wl,-z,relro \
         -Wl,-z,now \
         -pie \
-        -Wl,-fuse-ld=gold])
+        -Wl,-fuse-ld=bfd])
 AC_SUBST([OUR_LDFLAGS], "$with_ldflags $sanitizer_ldflags")
 
 AC_CHECK_SIZEOF(pid_t)
