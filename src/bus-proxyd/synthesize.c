@@ -38,7 +38,7 @@
 #include "bus-control.h"
 #include "synthesize.h"
 
-static int synthetic_driver_send(sd_bus *b, sd_bus_message *m) {
+int synthetic_driver_send(sd_bus *b, sd_bus_message *m) {
         int r;
 
         assert(b);
