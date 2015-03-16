@@ -44,6 +44,7 @@ BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(liblzma)
 BuildRequires:  pkgconfig(libpci)
 BuildRequires:  pkgconfig(libkmod)
+BuildRequires:  pkgconfig(libsmack)
 %if %{with kdbus}
 Requires:       kdbus-kmod
 %else
