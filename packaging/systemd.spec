@@ -8,7 +8,7 @@
 %define release_flags %{?with_kdbus:+kdbus}
 
 Name:           systemd
-Version:        216
+Version:        219
 Release:        0%{?release_flags}
 # For a breakdown of the licensing, see README
 License:        LGPL-2.0+ and MIT and GPL-2.0+
@@ -39,6 +39,7 @@ BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(liblzma)
 BuildRequires:  pkgconfig(libpci)
 BuildRequires:  pkgconfig(libkmod)
+BuildRequires:  pkgconfig(mount)
 %if %{with kdbus}
 Requires:       kdbus-kmod
 %else
@@ -133,6 +134,7 @@ cp %{SOURCE1001} .
         %{enable kdbus} \
         --enable-compat-libs \
         --enable-bootchart \
+        --disable-hwdb \
         --disable-sysusers \
         --disable-firstboot \
         --disable-timesyncd \
@@ -156,6 +158,8 @@ cat <<EOF >> systemd.lang
 %lang(fr) /usr/lib/systemd/catalog/systemd.fr.catalog
 %lang(it) /usr/lib/systemd/catalog/systemd.it.catalog
 %lang(ru) /usr/lib/systemd/catalog/systemd.ru.catalog
+%lang(pl) /usr/lib/systemd/catalog/systemd.pl.catalog
+%lang(pt_BR) /usr/lib/systemd/catalog/systemd.pt_BR.catalog
 EOF
 
 # udev links
@@ -395,8 +399,8 @@ fi
 %{_prefix}/lib/systemd/user/paths.target
 %{_prefix}/lib/systemd/user/smartcard.target
 %{_prefix}/lib/systemd/user/timers.target
-%{_prefix}/lib/systemd/user/busnames.target
 %if %{with kdbus}
+%{_prefix}/lib/systemd/user/busnames.target
 %{_prefix}/lib/systemd/user/systemd-bus-proxyd.socket
 %{_prefix}/lib/systemd/user/systemd-bus-proxyd@.service
 %endif
@@ -436,6 +440,7 @@ fi
 %{_sbindir}/runlevel
 %{_sbindir}/udevadm
 %{_datadir}/systemd/kbd-model-map
+%{_datadir}/systemd/language-fallback-map
 %{_datadir}/dbus-1/services/org.freedesktop.systemd1.service
 %{_datadir}/dbus-1/system-services/org.freedesktop.systemd1.service
 %{_datadir}/dbus-1/system-services/org.freedesktop.hostname1.service
@@ -450,9 +455,13 @@ fi
 %{_datadir}/polkit-1/actions/org.freedesktop.login1.policy
 %{_datadir}/polkit-1/actions/org.freedesktop.locale1.policy
 %{_datadir}/polkit-1/actions/org.freedesktop.timedate1.policy
-%exclude %{_datadir}/factory/etc/nsswitch.conf
-%exclude %{_datadir}/factory/etc/pam.d/other
-%exclude %{_datadir}/factory/etc/pam.d/system-auth
+%{_datadir}/polkit-1/actions/org.freedesktop.machine1.policy
+%dir %{_datadir}/factory/
+%dir %{_datadir}/factory/etc
+%dir %{_datadir}/factory/etc/pam.d
+%{_datadir}/factory/etc/nsswitch.conf
+%{_datadir}/factory/etc/pam.d/other
+%{_datadir}/factory/etc/pam.d/system-auth
 
 # Make sure we don't remove runlevel targets from F14 alpha installs,
 # but make sure we don't create then anew.
@@ -505,7 +514,7 @@ fi
 %{_libdir}/pkgconfig/libsystemd-id128.pc
 %{_libdir}/pkgconfig/libsystemd-journal.pc
 %{_libdir}/pkgconfig/libsystemd-login.pc
-%{_datadir}/pkgconfig/systemd.pc
+%{_libdir}/pkgconfig/systemd.pc
 %{_datadir}/pkgconfig/udev.pc
 %{_sysconfdir}/rpm/macros.systemd
 
