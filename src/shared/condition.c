@@ -102,7 +102,7 @@ static int condition_test_kernel_command_line(Condition *c) {
                 _cleanup_free_ char *word = NULL;
                 bool found;
 
-                r = unquote_first_word(&p, &word, true);
+                r = unquote_first_word(&p, &word, UNQUOTE_RELAX);
                 if (r < 0)
                         return r;
                 if (r == 0)
