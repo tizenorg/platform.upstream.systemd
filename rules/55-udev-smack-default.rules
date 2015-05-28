@@ -13,6 +13,8 @@ SUBSYSTEM=="graphics", GROUP="video", SECLABEL{smack}="*"
 SUBSYSTEM=="drm", GROUP="video", SECLABEL{smack}="*"
 SUBSYSTEM=="dvb", GROUP="video", SECLABEL{smack}="*"
 
+SUBSYSTEM=="sound", GROUP="audio", SECLABEL{smack}="*"
+
 SUBSYSTEM=="tty", KERNEL=="ptmx", GROUP="tty", MODE="0666", SECLABEL{smack}="*"
 SUBSYSTEM=="tty", KERNEL=="tty", GROUP="tty", MODE="0666", SECLABEL{smack}="*"
 SUBSYSTEM=="tty", KERNEL=="tty[0-9]*", GROUP="tty", MODE="0620", SECLABEL{smack}="*"
