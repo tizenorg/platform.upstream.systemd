@@ -42,6 +42,76 @@
 
 #ifdef HAVE_SMACK
 
+static int write_netlabel_rule(const char* srcdir) {
+        _cleanup_close_ int netlabel_fd = -1;
+        _cleanup_closedir_ DIR *dir = NULL;
+        struct dirent *entry;
+        char buf[NAME_MAX];
+        int dfd = -1;
+        int r = 0;
+
+        netlabel_fd = open("/sys/fs/smackfs/netlabel", O_RDWR|O_CLOEXEC|O_NONBLOCK|O_NOCTTY);
+        if (netlabel_fd < 0) {
+                if (errno != ENOENT)
+                        log_warning_errno(errno, "Failed to open '/sys/fs/smackfs/netlabel': %m");
+                return -errno; /* negative error */
+        }
+
+        /* write rules to netlabel from every file in the directory */
+        dir = opendir(srcdir);
+        if (!dir) {
+                if (errno != ENOENT)
+                        log_warning_errno(errno, "Failed to opendir '%s': %m", srcdir);
+                return errno; /* positive on purpose */
+        }
+
+        dfd = dirfd(dir);
+        assert(dfd >= 0);
+
+        FOREACH_DIRENT(entry, dir, return 0) {
+                int fd;
+                _cleanup_fclose_ FILE *policy = NULL;
+
+                if (!dirent_is_file(entry))
+                        continue;
+
+                fd = openat(dfd, entry->d_name, O_RDONLY|O_CLOEXEC);
+                if (fd < 0) {
+                        if (r == 0)
+                                r = -errno;
+                        log_warning_errno(errno, "Failed to open %s: %m", entry->d_name);
+                        continue;
+                }
+
+                policy = fdopen(fd, "re");
+                if (!policy) {
+                        if (r == 0)
+                                r = -errno;
+                        safe_close(fd);
+                        log_error("Failed to open %s: %m", entry->d_name);
+                        continue;
+                }
+
+                /* load2 write rules in the kernel require a line buffered stream */
+                FOREACH_LINE(buf, policy,
+                             log_error("Failed to read line from '%s': %m",
+                                       entry->d_name)) {
+
+                        if (isempty(truncate_nl(buf)))
+                                continue;
+
+                        if (write(netlabel_fd, buf, strlen(buf)) < 0) {
+                                if (r == 0)
+                                        r = -errno;
+                                log_error_errno(errno, "Failed to write '%s' to '/sys/fs/smackfs/netlabel' in '%s'", buf, entry->d_name);
+                                break;
+                        }
+                }
+        }
+
+       return r;
+}
+
 static int write_access2_rules(const char* srcdir) {
         _cleanup_close_ int load2_fd = -1, change_fd = -1;
         _cleanup_closedir_ DIR *dir = NULL;
@@ -263,8 +333,24 @@ int mac_smack_setup(bool *loaded_policy) {
                 break;
         }
 
-        *loaded_policy = true;
+        r = write_netlabel_rule("/etc/smack/netlabel.d/");
+        switch(r) {
+        case -ENOENT:
+                log_debug("Smack/CIPSO is not enabled in the kernel.");
+                return 0;
+        case ENOENT:
+                log_debug("Smack network host rules directory '/etc/smack/netlabel.d/' not found");
+                break;
+        case 0:
+                log_info("Successfully loaded Smack network host rules.");
+                break;
+        default:
+                log_warning("Failed to load Smack network host rules: %s, ignoring.",
+                            strerror(abs(r)));
+                break;
+        }
 
+        *loaded_policy = true;
 #endif
 
         return 0;
