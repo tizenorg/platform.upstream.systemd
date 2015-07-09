@@ -360,6 +360,9 @@ fi
 %ghost %config(noreplace) %{_sysconfdir}/machine-id
 %ghost %config(noreplace) %{_sysconfdir}/machine-info
 %ghost %config(noreplace) %{_sysconfdir}/timezone
+%if %{with kdbus}
+%{_sysconfdir}/X11/xinit/xinitrc.d/50-systemd-user.sh
+%endif
 %{_bindir}/systemd
 %{_bindir}/systemctl
 %{_bindir}/systemd-notify
@@ -402,7 +405,7 @@ fi
 %if %{with kdbus}
 %{_prefix}/lib/systemd/user/busnames.target
 %{_prefix}/lib/systemd/user/systemd-bus-proxyd.socket
-%{_prefix}/lib/systemd/user/systemd-bus-proxyd@.service
+%{_prefix}/lib/systemd/user/systemd-bus-proxyd.service
 %endif
 %exclude %{_prefix}/lib/systemd/network/80-container-ve.network
 %exclude %{_prefix}/lib/systemd/network/80-container-host0.network
