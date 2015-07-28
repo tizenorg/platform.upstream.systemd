@@ -462,7 +462,8 @@ fi
 %dir %{_datadir}/factory/
 %dir %{_datadir}/factory/etc
 %dir %{_datadir}/factory/etc/pam.d
-%{_datadir}/factory/etc/nsswitch.conf
+# /etc/nsswitch.conf is only used in Tizen
+%exclude %{_datadir}/factory/etc/nsswitch.conf
 %{_datadir}/factory/etc/pam.d/other
 %{_datadir}/factory/etc/pam.d/system-auth
 
