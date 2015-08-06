@@ -402,6 +402,7 @@ _public_ int sd_pid_notify_with_fds(pid_t pid, int unset_environment, const char
                                         CMSG_SPACE(sizeof(struct ucred) * have_pid);
                 msghdr.msg_control = alloca(msghdr.msg_controllen);
 
+                cmsg = CMSG_FIRSTHDR(&msghdr);
                 if (n_fds > 0) {
                         cmsg->cmsg_level = SOL_SOCKET;
                         cmsg->cmsg_type = SCM_RIGHTS;
