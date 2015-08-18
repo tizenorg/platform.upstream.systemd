@@ -308,6 +308,11 @@ int mount_cgroup_controllers(char ***join_controllers) {
                                 r = symlink(options, t);
                                 if (r < 0 && errno != EEXIST)
                                         return log_error_errno(errno, "Failed to create symlink %s: %m", t);
+
+                                r = mac_smack_apply(t, "*");
+                                if (r < 0)
+                                        log_error_errno(r, "SJ: failed to set SMACK label '%s': %m", t);
+
                         }
                 }
         }
