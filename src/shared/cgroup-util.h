@@ -74,6 +74,8 @@ int cg_get_path_and_check(const char *controller, const char *path, const char *
 
 int cg_pid_get_path(const char *controller, pid_t pid, char **path);
 
+int cg_check_cgroup_exist(const char *p);
+
 int cg_trim(const char *controller, const char *path, bool delete_root);
 
 int cg_rmdir(const char *controller, const char *path);
