@@ -159,6 +159,15 @@ int mac_smack_fix(const char *path, bool ignore_enoent, bool ignore_erofs) {
         if (!mac_smack_use())
                 return 0;
 
+        /* FIXME: The following two ifs should be changed to something like
+         * if (strcmp(path_mount_point(path), "/dev")) {...}
+         * Implementation of path_mount_point() will be non-trivial.
+         */
+
+         /* Don't fix label on /dev/shm, it's a separate mount point */
+         if (!strcmp(path, "/dev/shm"))
+                return 0;
+
         /*
          * Path must be in /dev and must exist
          */
