@@ -52,6 +52,7 @@
 #include "dbus-socket.h"
 #include "unit.h"
 #include "socket.h"
+#include "copy.h"
 
 static const UnitActiveState state_translation_table[_SOCKET_STATE_MAX] = {
         [SOCKET_DEAD] = UNIT_INACTIVE,
@@ -1168,6 +1169,22 @@ static int socket_symlink(Socket *s) {
         return 0;
 }
 
+static int ffs_write_descs(int fd, Unit *u) {
+        Service *s = SERVICE(u);
+        int r;
+
+        if (!s->usb_function_descriptors || !s->usb_function_strings)
+                return -EINVAL;
+
+        r = copy_file_fd(s->usb_function_descriptors, fd, false);
+        if (r < 0)
+                return 0;
+
+        r = copy_file_fd(s->usb_function_strings, fd, false);
+
+        return r;
+}
+
 static int select_ep(const struct dirent *d) {
         return d->d_name[0] != '.' && !streq(d->d_name, "ep0");
 }
@@ -1323,6 +1340,10 @@ static int socket_open_fds(Socket *s) {
                         r = ffs_address_create(
                                         p->path,
                                         &p->fd);
+                        if (r < 0)
+                                goto rollback;
+
+                        r = ffs_write_descs(p->fd, s->service.unit);
                         if (r < 0)
                                 goto rollback;
 
