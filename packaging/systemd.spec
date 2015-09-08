@@ -7,6 +7,8 @@
 
 %define release_flags %{?with_kdbus:+kdbus}
 
+%define WITH_RANDOMSEED 0
+
 Name:           systemd
 Version:        219
 Release:        0%{?release_flags}
@@ -128,6 +130,9 @@ cp %{SOURCE1001} .
 %autogen
 %configure \
         %{enable kdbus} \
+%if ! %{WITH_RANDOMSEED}
+        --disable-randomseed \
+%endif
         --enable-compat-libs \
         --enable-bootchart \
         --disable-hwdb \
@@ -265,7 +270,9 @@ rm -f %{buildroot}/%{_prefix}/lib/systemd/system-generators/systemd-hibernate-re
 
 %post
 /usr/bin/systemd-machine-id-setup > /dev/null 2>&1 || :
+%if %{WITH_RANDOMSEED}
 /usr/lib/systemd/systemd-random-seed save > /dev/null 2>&1 || :
+%endif
 /usr/bin/systemctl daemon-reexec > /dev/null 2>&1 || :
 /usr/bin/systemctl start systemd-udevd.service >/dev/null 2>&1 || :
 
