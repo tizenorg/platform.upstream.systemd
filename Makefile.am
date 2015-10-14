@@ -606,7 +606,8 @@ EXTRA_DIST += \
 	units/initrd-udevadm-cleanup-db.service.in \
 	units/initrd-switch-root.service.in \
 	units/systemd-nspawn@.service.in \
-	units/systemd-update-done.service.in
+	units/systemd-update-done.service.in \
+	units/tmp.mount.m4
 
 CLEANFILES += \
 	units/console-shell.service.m4 \
