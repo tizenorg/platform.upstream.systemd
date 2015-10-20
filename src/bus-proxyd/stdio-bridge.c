@@ -242,7 +242,7 @@ int main(int argc, char *argv[]) {
         if (r <= 0)
                 goto finish;
 
-        r = proxy_new(&p, STDIN_FILENO, STDOUT_FILENO, arg_address);
+        r = proxy_new(&p, STDIN_FILENO, STDOUT_FILENO, NULL, arg_address);
         if (r < 0)
                 goto finish;
 

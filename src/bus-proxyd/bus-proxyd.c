@@ -7,6 +7,8 @@
   Copyright 2013 Daniel Mack
   Copyright 2014 Kay Sievers
   Copyright 2015 David Herrmann
+  Copyright (c) 2015 Samsung Electronics, Ltd.
+  Kazimierz Krosman <k.krosman@samsung.com>
 
   systemd is free software; you can redistribute it and/or modify it
   under the terms of the GNU Lesser General Public License as published by
@@ -63,12 +65,15 @@ typedef struct {
         int fd;
         SharedPolicy *policy;
         uid_t bus_uid;
+        BusCynara *cynara;
 } ClientContext;
 
 static ClientContext *client_context_free(ClientContext *c) {
         if (!c)
                 return NULL;
-
+#ifdef ENABLE_CYNARA
+        cynara_bus_unref(c->cynara);
+#endif
         safe_close(c->fd);
         free(c);
 
@@ -90,14 +95,77 @@ static int client_context_new(ClientContext **out) {
         c = NULL;
         return 0;
 }
+#ifdef ENABLE_CYNARA
+static int cynara_process_wakeup(int fd, struct pollfd* pollfd) {
+        if (pollfd->revents & POLLIN) {
+                int r;
+                char dummy_buffer[32];
 
+                log_debug("Cynara woke up.");
+                while ((r = read(fd, dummy_buffer, 32)) > 0);
+                if (r < 0 && r != -1)
+                        return r;
+
+                return 1;
+        } else
+                log_debug("Cynara woke up by cynara daemon.");
+
+        return 0;
+}
+static void* cynara_client(void* a) {
+        _cleanup_(cynara_bus_unrefp) BusCynara *cynara;
+        int fd;
+        int block_fd;
+        int events;
+        int fd_num;
+        int r;
+        struct pollfd *pollfd;
+        cynara = a;
+        block_fd = cynara_bus_get_block_fd(cynara);
+
+        pollfd = (struct pollfd[3]) {
+                { .fd = block_fd,     .events = POLLIN,      },
+                { .fd = fd,           .events = events & POLLIN,     },
+                { .fd = fd,           .events = events & POLLOUT,    },
+        };
+
+        log_debug("Started Cynara thread.");
+        for(;;) {
+                fd = cynara_bus_get_fd(cynara);
+                if (fd < 0)
+                        fd_num = 1;
+                else {
+                        fd_num = 3;
+                        events = cynara_bus_get_events(cynara);
+                        pollfd[1].fd = fd;
+                        pollfd[1].events = events & POLLIN;
+                        pollfd[2].fd = fd;
+                        pollfd[2].events = events & POLLOUT;
+                }
+
+                r = ppoll(pollfd, fd_num, NULL, NULL);
+                cynara_process_wakeup(block_fd, &pollfd[0]);
+                if (r >= 0)
+                {
+                        r = cynara_run_process(cynara);
+                        if (r < 0) {
+                                log_error("Cynara lib error: closing task.");
+                                break;
+                        }
+                } else
+                        log_error("ppol error cynara: %d %d.", fd, r);
+        }
+        log_debug("Exiting Cynara Thread.");
+        return 0;
+}
+#endif
 static void *run_client(void *userdata) {
         _cleanup_(client_context_freep) ClientContext *c = userdata;
         _cleanup_(proxy_freep) Proxy *p = NULL;
         char comm[16];
         int r;
 
-        r = proxy_new(&p, c->fd, c->fd, arg_address);
+        r = proxy_new(&p, c->fd, c->fd, c->cynara, arg_address);
         if (r < 0)
                 goto exit;
 
@@ -125,7 +193,11 @@ exit:
 
 static int loop_clients(int accept_fd, uid_t bus_uid) {
         _cleanup_(shared_policy_freep) SharedPolicy *sp = NULL;
+#ifdef ENABLE_CYNARA
+        _cleanup_(cynara_bus_unrefp) BusCynara *cynara = NULL;
+#endif
         pthread_attr_t attr;
+        pthread_t tid;
         int r;
 
         r = pthread_attr_init(&attr);
@@ -142,11 +214,20 @@ static int loop_clients(int accept_fd, uid_t bus_uid) {
         r = shared_policy_new(&sp);
         if (r < 0)
                 goto finish;
+#ifdef ENABLE_CYNARA
+        r = bus_cynara_new(&cynara);
+        if (r < 0)
+                goto finish;
 
+        r = pthread_create(&tid, &attr, cynara_client, cynara);
+        if (r < 0) {
+                log_error("Cannot spawn cynara thread: %m");
+                goto finish;
+        }
+#endif
         for (;;) {
-                ClientContext *c;
-                pthread_t tid;
                 int fd;
+                ClientContext *c = NULL;
 
                 fd = accept4(accept_fd, NULL, NULL, SOCK_NONBLOCK | SOCK_CLOEXEC);
                 if (fd < 0) {
@@ -167,7 +248,9 @@ static int loop_clients(int accept_fd, uid_t bus_uid) {
                 c->fd = fd;
                 c->policy = sp;
                 c->bus_uid = bus_uid;
-
+#ifdef ENABLE_CYNARA
+                c->cynara = cynara_bus_ref(cynara);
+#endif
                 r = pthread_create(&tid, &attr, run_client, c);
                 if (r < 0) {
                         log_error("Cannot spawn thread: %m");
@@ -297,7 +380,6 @@ int main(int argc, char *argv[]) {
         log_open();
 
         bus_uid = getuid();
-
         if (geteuid() == 0) {
                 const char *user = "systemd-bus-proxy";
 

@@ -6,6 +6,8 @@
   This file is part of systemd.
 
   Copyright 2014 David Herrmann
+  Copyright (c) 2015 Samsung Electronics, Ltd.
+  Kazimierz Krosman <k.krosman@samsung.com>
 
   systemd is free software; you can redistribute it and/or modify it
   under the terms of the GNU Lesser General Public License as published by
@@ -23,10 +25,15 @@
 
 #include <stdlib.h>
 #include "sd-bus.h"
+#include "bus-message.h"
 #include "bus-xml-policy.h"
 #include "util.h"
 
 typedef struct Proxy Proxy;
+
+typedef struct BusCynara BusCynara;
+typedef struct ProxyContext ProxyContext;
+typedef struct PolicyMessageCheckHistory PolicyMessageCheckHistory;
 
 struct Proxy {
         sd_bus *local_bus;
@@ -39,14 +46,22 @@ struct Proxy {
         Set *owned_names;
         SharedPolicy *policy;
 
+        ProxyContext *proxy_context;
         bool got_hello : 1;
 };
 
-int proxy_new(Proxy **out, int in_fd, int out_fd, const char *dest);
+int proxy_new(Proxy **out, int in_fd, int out_fd, BusCynara *cynara, const char *dest);
 Proxy *proxy_free(Proxy *p);
 
 int proxy_set_policy(Proxy *p, SharedPolicy *policy, char **configuration);
 int proxy_hello_policy(Proxy *p, uid_t original_uid);
 int proxy_run(Proxy *p);
 
+int proxy_context_new(ProxyContext **pc, BusCynara *bus_cynara);
+ProxyContext* proxy_context_free(ProxyContext *pc);
+
+BusCynara* proxy_ref_bus_cynara(ProxyContext *pc);
+
+
 DEFINE_TRIVIAL_CLEANUP_FUNC(Proxy*, proxy_free);
+DEFINE_TRIVIAL_CLEANUP_FUNC(ProxyContext*, proxy_context_free);
