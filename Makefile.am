@@ -1782,6 +1782,8 @@ test_tables_SOURCES = \
 	src/shared/test-tables.h \
 	src/bus-proxyd/bus-xml-policy.c \
 	src/bus-proxyd/bus-xml-policy.h \
+	src/bus-proxyd/cynara.c \
+	src/bus-proxyd/cynara.h \
 	src/journal/journald-server.c \
 	src/journal/journald-server.h
 
@@ -1791,6 +1793,7 @@ test_tables_CPPFLAGS = \
 
 test_tables_CFLAGS = \
 	$(AM_CFLAGS) \
+	$(CYNARA_CFLAGS) \
 	$(SECCOMP_CFLAGS)
 
 test_tables_LDADD = \
@@ -1799,7 +1802,8 @@ test_tables_LDADD = \
 	libsystemd-journal-core.la \
 	libsystemd-core.la \
 	libudev-core.la \
-	$(RT_LIBS)
+	$(RT_LIBS) \
+	$(CYNARA_CFLAGS)
 
 test_prioq_SOURCES = \
 	src/test/test-prioq.c
@@ -2701,15 +2705,19 @@ libsystemd_proxy_la_SOURCES = \
 	src/bus-proxyd/proxy.c \
 	src/bus-proxyd/proxy.h \
 	src/bus-proxyd/synthesize.c \
-	src/bus-proxyd/synthesize.h
+	src/bus-proxyd/synthesize.h \
+	src/bus-proxyd/cynara.c \
+	src/bus-proxyd/cynara.h
 
 libsystemd_proxy_la_CFLAGS = \
 	$(AM_CFLAGS) \
+	$(CYNARA_CFLAGS) \
 	-pthread
 
 libsystemd_proxy_la_LIBADD = \
 	libsystemd-internal.la \
-	libsystemd-shared.la
+	libsystemd-shared.la \
+	$(CYNARA_LIBS)
 
 systemd_bus_proxyd_SOURCES = \
 	src/bus-proxyd/bus-proxyd.c

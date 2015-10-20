@@ -4,6 +4,8 @@
   This file is part of systemd.
 
   Copyright 2013 Lennart Poettering
+  Copyright (c) 2015 Samsung Electronics, Ltd.
+  Kazimierz Krosman <k.krosman@samsung.com>
 
   systemd is free software; you can redistribute it and/or modify it
   under the terms of the GNU Lesser General Public License as published by
@@ -28,6 +30,8 @@
 #include "bus-message.h"
 #include "bus-xml-policy.h"
 #include "sd-login.h"
+#include "cynara.h"
+#include "proxy.h"
 
 static void policy_item_free(PolicyItem *i) {
         assert(i);
@@ -76,6 +80,7 @@ static int file_load(Policy *p, const char *path) {
                 STATE_ALLOW_DENY_MESSAGE_TYPE,
                 STATE_ALLOW_DENY_NAME,
                 STATE_ALLOW_DENY_OTHER_ATTRIBUTE,
+                STATE_CHECK_PRIVILEGE,
                 STATE_OTHER,
         } state = STATE_OUTSIDE;
 
@@ -181,6 +186,8 @@ static int file_load(Policy *p, const char *path) {
                                         it = POLICY_ITEM_ALLOW;
                                 else if (streq(name, "deny"))
                                         it = POLICY_ITEM_DENY;
+                                else if (streq(name,  "check"))
+                                        it = POLICY_ITEM_CHECK;
                                 else {
                                         log_warning("Unknown tag %s in <policy> %s:%u.", name, path, line);
                                         return -EINVAL;
@@ -301,6 +308,18 @@ static int file_load(Policy *p, const char *path) {
                                         ic = POLICY_ITEM_USER;
                                 else if (streq(name, "group"))
                                         ic = POLICY_ITEM_GROUP;
+#ifdef ENABLE_CYNARA
+                                else if(streq(name, "privilege")) {
+                                        if(i->type != POLICY_ITEM_CHECK) {
+                                                log_error("Attribute privilege in unsupported tag at %s:%u, ignoring.", path, line);
+                                                state = STATE_ALLOW_DENY_OTHER_ATTRIBUTE;
+                                                break;
+                                        } else {
+                                                state = STATE_CHECK_PRIVILEGE;
+                                                break;
+                                        }
+                                }
+#endif
                                 else if (streq(name, "eavesdrop")) {
                                         log_debug("Unsupported attribute %s= at %s:%u, ignoring.", name, path, line);
                                         state = STATE_ALLOW_DENY_OTHER_ATTRIBUTE;
@@ -351,12 +370,18 @@ static int file_load(Policy *p, const char *path) {
                                         state = STATE_ALLOW_DENY_NAME;
 
                         } else if (t == XML_TAG_CLOSE_EMPTY ||
-                                   (t == XML_TAG_CLOSE && streq(name, i->type == POLICY_ITEM_ALLOW ? "allow" : "deny"))) {
+                                   (t == XML_TAG_CLOSE &&
+                                    ((streq(name, "allow") && i->type == POLICY_ITEM_ALLOW  ) ||
+                                     (streq(name, "deny") && i->type == POLICY_ITEM_DENY  ) ||
+                                     (streq(name, "check") && i->type == POLICY_ITEM_CHECK  )))) {
 
                                 /* If the tag is fully empty so far, we consider it a recv */
                                 if (i->class == _POLICY_ITEM_CLASS_UNSET)
                                         i->class = POLICY_ITEM_RECV;
-
+                                if (i->type == POLICY_ITEM_CHECK && i->privilege == NULL) {
+                                        log_error("Check tag without privilege");
+                                        return -EINVAL;
+                                }
                                 if (policy_category == POLICY_CATEGORY_DEFAULT)
                                         item_append(i, &p->default_items);
                                 else if (policy_category == POLICY_CATEGORY_MANDATORY)
@@ -619,6 +644,17 @@ static int file_load(Policy *p, const char *path) {
 
                         break;
 
+                case STATE_CHECK_PRIVILEGE:
+                        if (t == XML_ATTRIBUTE_VALUE) {
+                                i->privilege = name;
+                                name = NULL;
+                                state = STATE_ALLOW_DENY;
+                        } else {
+                                log_error("Unexpected token (15) in %s:%u.", path, line);
+                                return -EINVAL;
+                        }
+                        break;
+
                 case STATE_OTHER:
 
                         if (t == XML_TAG_OPEN)
@@ -640,6 +676,7 @@ enum {
         DENY,
         ALLOW,
         DUNNO,
+        LATER,
 };
 
 static const char *verdict_to_string(int v) {
@@ -651,30 +688,40 @@ static const char *verdict_to_string(int v) {
                 return "ALLOW";
         case DUNNO:
                 return "DUNNO";
+        case LATER:
+                return "LATER";
         }
 
         return NULL;
 }
 
-struct policy_check_filter {
-        PolicyItemClass class;
-        uid_t uid;
-        gid_t gid;
-        int message_type;
-        const char *name;
-        const char *interface;
-        const char *path;
-        const char *member;
-};
-
-static int is_permissive(PolicyItem *i) {
+static int is_permissive(PolicyItem *i, const PolicyCheckFilter *filter, ProxyContext *proxy_context, PolicyDeferredMessage **deferred_message) {
+        _cleanup_(cynara_bus_unrefp) BusCynara *cynara = NULL;
 
         assert(i);
+        assert(proxy_context);
 
-        return (i->type == POLICY_ITEM_ALLOW) ? ALLOW : DENY;
+        if (i->type == POLICY_ITEM_CHECK) {
+                CynaraPolicyResult r;
+                cynara = proxy_ref_bus_cynara(proxy_context);
+
+                r = cynara_check_privilege(cynara, i, filter, deferred_message);
+                switch (r) {
+                case CYNARA_RESULT_ALLOW:
+                        return ALLOW;
+                case CYNARA_RESULT_LATER:
+                        return LATER;
+                case CYNARA_RESULT_ERROR:
+                case CYNARA_RESULT_DENY:
+                        return DENY;
+                }
+        } else
+                return (i->type == POLICY_ITEM_ALLOW) ? ALLOW : DENY;
+
+        return DUNNO;
 }
 
-static int check_policy_item(PolicyItem *i, const struct policy_check_filter *filter) {
+static int check_policy_item(PolicyItem *i, const PolicyCheckFilter *filter, ProxyContext *proxy_context, PolicyDeferredMessage **deferred) {
 
         assert(i);
         assert(filter);
@@ -698,32 +745,32 @@ static int check_policy_item(PolicyItem *i, const struct policy_check_filter *fi
                 if (i->interface && !streq_ptr(i->interface, filter->interface))
                         break;
 
-                return is_permissive(i);
+                return is_permissive(i, filter, proxy_context, deferred);
 
         case POLICY_ITEM_OWN:
                 assert(filter->name);
 
                 if (streq(i->name, "*") || streq(i->name, filter->name))
-                        return is_permissive(i);
+                        return is_permissive(i, filter, proxy_context, deferred);
                 break;
 
         case POLICY_ITEM_OWN_PREFIX:
                 assert(filter->name);
 
                 if (streq(i->name, "*") || service_name_startswith(filter->name, i->name))
-                        return is_permissive(i);
+                        return is_permissive(i, filter, proxy_context, deferred);
                 break;
 
         case POLICY_ITEM_USER:
                 if (filter->uid != UID_INVALID)
                         if ((streq_ptr(i->name, "*") || (i->uid_valid && i->uid == filter->uid)))
-                                return is_permissive(i);
+                                return is_permissive(i, filter, proxy_context, deferred);
                 break;
 
         case POLICY_ITEM_GROUP:
                 if (filter->gid != GID_INVALID)
                         if ((streq_ptr(i->name, "*") || (i->gid_valid && i->gid == filter->gid)))
-                                return is_permissive(i);
+                                return is_permissive(i, filter, proxy_context, deferred);
                 break;
 
         case POLICY_ITEM_IGNORE:
@@ -734,7 +781,7 @@ static int check_policy_item(PolicyItem *i, const struct policy_check_filter *fi
         return DUNNO;
 }
 
-static int check_policy_items(PolicyItem *items, const struct policy_check_filter *filter) {
+static int check_policy_items(PolicyItem *items, const PolicyCheckFilter *filter, ProxyContext *proxy_context, PolicyDeferredMessage **deferred) {
 
         PolicyItem *i;
         int verdict = DUNNO;
@@ -750,7 +797,7 @@ static int check_policy_items(PolicyItem *items, const struct policy_check_filte
                     !(i->class == POLICY_ITEM_OWN_PREFIX && filter->class == POLICY_ITEM_OWN))
                         continue;
 
-                v = check_policy_item(i, filter);
+                v = check_policy_item(i, filter, proxy_context, deferred);
                 if (v != DUNNO)
                         verdict = v;
         }
@@ -758,14 +805,12 @@ static int check_policy_items(PolicyItem *items, const struct policy_check_filte
         return verdict;
 }
 
-static int policy_check(Policy *p, const struct policy_check_filter *filter) {
-
+static int policy_check(Policy *p, const PolicyCheckFilter *filter, ProxyContext *proxy_context, PolicyDeferredMessage **deferred) {
         PolicyItem *items;
         int verdict, v;
 
         assert(p);
         assert(filter);
-
         assert(IN_SET(filter->class, POLICY_ITEM_SEND, POLICY_ITEM_RECV, POLICY_ITEM_OWN, POLICY_ITEM_USER, POLICY_ITEM_GROUP));
 
         /*
@@ -780,12 +825,12 @@ static int policy_check(Policy *p, const struct policy_check_filter *filter) {
          *  Later rules override earlier rules.
          */
 
-        verdict = check_policy_items(p->default_items, filter);
+        verdict = check_policy_items(p->default_items, filter, proxy_context, deferred);
 
         if (filter->gid != GID_INVALID) {
                 items = hashmap_get(p->group_items, UINT32_TO_PTR(filter->gid));
                 if (items) {
-                        v = check_policy_items(items, filter);
+                        v = check_policy_items(items, filter, proxy_context, deferred);
                         if (v != DUNNO)
                                 verdict = v;
                 }
@@ -794,33 +839,117 @@ static int policy_check(Policy *p, const struct policy_check_filter *filter) {
         if (filter->uid != UID_INVALID) {
                 items = hashmap_get(p->user_items, UINT32_TO_PTR(filter->uid));
                 if (items) {
-                        v = check_policy_items(items, filter);
+                        v = check_policy_items(items, filter, proxy_context, deferred);
                         if (v != DUNNO)
                                 verdict = v;
                 }
         }
 
         if (filter->uid != UID_INVALID && sd_uid_get_seats(filter->uid, -1, NULL) > 0)
-                v = check_policy_items(p->on_console_items, filter);
+                v = check_policy_items(p->on_console_items, filter, proxy_context, deferred);
         else
-                v = check_policy_items(p->no_console_items, filter);
+                v = check_policy_items(p->no_console_items, filter, proxy_context, deferred);
         if (v != DUNNO)
                 verdict = v;
 
-        v = check_policy_items(p->mandatory_items, filter);
+        v = check_policy_items(p->mandatory_items, filter, proxy_context, deferred);
         if (v != DUNNO)
                 verdict = v;
 
         return verdict;
 }
 
-bool policy_check_own(Policy *p, uid_t uid, gid_t gid, const char *name) {
+static PolicyCheckResult policy_get_result_from_deferred(PolicyMessageCheckHistory *dh, bool is_blocking, PolicyDeferredMessage *dm) {
+        PolicyCheckResult res;
 
-        struct policy_check_filter filter = {
+        if (is_blocking)
+                res = cynara_wait_for_answer(dm);
+        else {
+                cynara_deferred_check_history_acquire(dh, true);
+                res = dm->result;
+                cynara_deferred_check_history_release(dh);
+       }
+       return res;
+
+}
+
+PolicyCheckResult policy_check_from_deferred(PolicyMessageCheckHistory *dh, bool is_blocking) {
+        PolicyDeferredMessageType type;
+        PolicyDeferredMessage *i = NULL;
+        PolicyCheckResult res = POLICY_RESULT_DENY;
+        PolicyCheckResult res_tmp = POLICY_RESULT_DENY;
+
+        if (!dh) {
+                return POLICY_RESULT_DENY;
+        }
+
+        if (dh->result != POLICY_RESULT_LATER) {
+                return dh->result;
+        }
+
+        type = dh->history->type;
+        i = dh->history;
+        LIST_FOREACH(items, i, dh->history) {
+                if (i->type == POLICY_DEFERRED_MESSAGE_TYPE_NONE)
+                        i->type = type;
+                switch (i->type) {
+                //send and receive answer have to be all allow
+                case POLICY_DEFERRED_MESSAGE_TYPE_RECV:
+                case POLICY_DEFERRED_MESSAGE_TYPE_SEND:
+                        //in case of same type we search for first allow
+                        if (i->type != type && res_tmp == POLICY_RESULT_DENY)
+                                return POLICY_RESULT_DENY;
+                        else if (i->type != type)
+                                res_tmp = POLICY_RESULT_DENY;
+
+                        res = policy_get_result_from_deferred(dh, is_blocking, i);
+                        if (res == POLICY_RESULT_LATER)
+                                return res;
+                        else if (res_tmp != POLICY_RESULT_ALLOW)
+                                res_tmp = res;
+                break;
+
+                case POLICY_DEFERRED_MESSAGE_TYPE_OWN:
+                        //should always be one element
+                        if (type == i->type)
+                                return policy_get_result_from_deferred(dh, is_blocking, i);
+                break;
+
+                case  POLICY_DEFERRED_MESSAGE_TYPE_HELLO:
+                        // to first deny
+                        res_tmp = POLICY_RESULT_ALLOW;
+                        if (type == i->type) {
+                                res = policy_get_result_from_deferred(dh, is_blocking, i);
+                                if (res == POLICY_RESULT_LATER || res == POLICY_RESULT_DENY)
+                                        return res;
+                        }
+                break;
+
+                case POLICY_DEFERRED_MESSAGE_TYPE_NONE:
+                        /* for warning elimiation */
+                break;
+
+                }
+                type = i->type;
+        }
+        return res_tmp;
+}
+
+
+PolicyCheckResult policy_check_own(Policy *p,
+                        uid_t uid,
+                        gid_t gid,
+                        const char *name,
+                        const char *label,
+                        ProxyContext *proxy_context,
+                        PolicyDeferredMessage **deferred) {
+
+        PolicyCheckFilter filter = {
                 .class = POLICY_ITEM_OWN,
                 .uid   = uid,
                 .gid   = gid,
                 .name  = name,
+                .label = label,
         };
 
         int verdict;
@@ -828,54 +957,116 @@ bool policy_check_own(Policy *p, uid_t uid, gid_t gid, const char *name) {
         assert(p);
         assert(name);
 
-        verdict = policy_check(p, &filter);
+        verdict = policy_check(p, &filter, proxy_context, deferred);
 
         log_full(LOG_AUTH | (verdict != ALLOW ? LOG_WARNING : LOG_DEBUG),
-                 "Ownership permission check for uid=" UID_FMT " gid=" GID_FMT" name=%s: %s",
-                 uid, gid, strna(name), strna(verdict_to_string(verdict)));
+                 "Ownership permission check for uid=" UID_FMT " gid=" GID_FMT" name=%s label=%s: %s",
+                 uid, gid, strna(name), label, strna(verdict_to_string(verdict)));
 
-        return verdict == ALLOW;
+        if (verdict != LATER) {
+                cynara_deferred_message_list_free(*deferred);
+                *deferred = NULL;
+        }
+
+        switch(verdict) {
+        case ALLOW:
+                return POLICY_RESULT_ALLOW;
+        case DENY:
+                return POLICY_RESULT_DENY;
+        case LATER:
+                (*deferred)->type = POLICY_DEFERRED_MESSAGE_TYPE_OWN;
+                return POLICY_RESULT_LATER;
+        default:
+                return POLICY_RESULT_DENY;
+        }
 }
 
-bool policy_check_hello(Policy *p, uid_t uid, gid_t gid) {
+PolicyCheckResult policy_check_hello(Policy *p,
+                        uid_t uid,
+                        gid_t gid,
+                        const char* label,
+                        ProxyContext *proxy_context,
+                        PolicyDeferredMessage **deferred) {
 
-        struct policy_check_filter filter = {
+        PolicyCheckFilter filter = {
                 .uid = uid,
                 .gid = gid,
+                .label = label,
         };
         int verdict;
+        bool result_later = false;
+        int r;
 
         assert(p);
 
+        //first we search fo allow by USER ITEM
         filter.class = POLICY_ITEM_USER;
-        verdict = policy_check(p, &filter);
-
-        if (verdict != DENY) {
-                int v;
-
-                filter.class = POLICY_ITEM_GROUP;
-                v = policy_check(p, &filter);
-                if (v != DUNNO)
-                        verdict = v;
+        verdict = policy_check(p, &filter, proxy_context, deferred);
+        if (verdict == LATER) {
+                result_later = true;
+        } else {
+                *deferred = cynara_deferred_message_free(*deferred);
         }
 
-        log_full(LOG_AUTH | (verdict != ALLOW ? LOG_WARNING : LOG_DEBUG),
-                 "Hello permission check for uid=" UID_FMT " gid=" GID_FMT": %s",
-                 uid, gid, strna(verdict_to_string(verdict)));
+        //send if we get LAETR or ALLOW we should check if group allows hello connection
+        if (verdict != DENY) {
+                int v;
+                PolicyDeferredMessage *deferred_next = NULL;
 
-        return verdict == ALLOW;
+                filter.class = POLICY_ITEM_GROUP;
+                v = policy_check(p, &filter, proxy_context, &deferred_next);
+                if (v == LATER) {
+                        verdict = v;
+                        cynara_deferred_message_append(*deferred, deferred_next);
+                } else if (v != DUNNO) {
+                        if (result_later) {
+                                if (v ==ALLOW)
+                                        r = cynara_deferred_message_new_append(&deferred_next, POLICY_RESULT_ALLOW, deferred);
+                                else
+                                        r = -1;
+                                if (r < 0) {
+                                        cynara_deferred_message_list_free(*deferred);
+                                        *deferred = NULL;
+                                        return POLICY_RESULT_DENY;
+                                }
+                        }
+                        verdict = v;
+                }
+        }
+
+        if (result_later)
+                verdict = LATER;
+
+        log_full(LOG_AUTH | (verdict != ALLOW ? LOG_WARNING : LOG_DEBUG),
+                 "Hello permission check for uid=" UID_FMT " gid=" GID_FMT" label=%s: %s",
+                 uid, gid, label, strna(verdict_to_string(verdict)));
+
+        switch (verdict) {
+        case ALLOW:
+                return POLICY_RESULT_ALLOW;
+        case DENY:
+                return POLICY_RESULT_DENY;
+        case LATER:
+                (*deferred)->type = POLICY_DEFERRED_MESSAGE_TYPE_HELLO;
+                return POLICY_RESULT_LATER;
+        default:
+                return POLICY_RESULT_DENY;
+        }
 }
 
-bool policy_check_one_recv(Policy *p,
+PolicyCheckResult policy_check_one_recv(Policy *p,
                            uid_t uid,
                            gid_t gid,
                            int message_type,
                            const char *name,
                            const char *path,
                            const char *interface,
-                           const char *member) {
-
-        struct policy_check_filter filter = {
+                           const char *member,
+                           const char *label,
+                           ProxyContext *proxy_context,
+                           PolicyDeferredMessage **deferred) {
+        int verdict;
+        PolicyCheckFilter filter = {
                 .class        = POLICY_ITEM_RECV,
                 .uid          = uid,
                 .gid          = gid,
@@ -884,14 +1075,26 @@ bool policy_check_one_recv(Policy *p,
                 .interface    = interface,
                 .path         = path,
                 .member       = member,
+                .label        = label,
         };
 
         assert(p);
 
-        return policy_check(p, &filter) == ALLOW;
+        verdict = policy_check(p, &filter, proxy_context, deferred);
+        switch(verdict) {
+        case ALLOW:
+                return POLICY_RESULT_ALLOW;
+        case DENY:
+                return POLICY_RESULT_DENY;
+        case LATER:
+                (*deferred)->type = POLICY_DEFERRED_MESSAGE_TYPE_RECV;
+                return POLICY_RESULT_LATER;
+        default:
+                return POLICY_RESULT_DENY;
+        }
 }
 
-bool policy_check_recv(Policy *p,
+PolicyCheckResult policy_check_recv(Policy *p,
                        uid_t uid,
                        gid_t gid,
                        int message_type,
@@ -900,51 +1103,111 @@ bool policy_check_recv(Policy *p,
                        const char *path,
                        const char *interface,
                        const char *member,
-                       bool dbus_to_kernel) {
+                       const char *label,
+                       bool dbus_to_kernel,
+                       ProxyContext *proxy_context,
+                       PolicyDeferredMessage **deferred) {
 
         char *n, **nv, *last = NULL;
-        bool allow = false;
+        PolicyCheckResult result = POLICY_RESULT_DENY;
         Iterator i;
-
+        bool later_flag = false;
+        PolicyDeferredMessage *cur_deferred;
+        PolicyDeferredMessage *tail_deferred;
         assert(p);
 
+        LIST_FIND_TAIL(items, *deferred, cur_deferred);
+        tail_deferred = NULL;
         if (set_isempty(names) && strv_isempty(namesv)) {
-                allow = policy_check_one_recv(p, uid, gid, message_type, NULL, path, interface, member);
+                _cleanup_(cynara_deferred_message_freep) PolicyDeferredMessage *deferred_next = NULL;
+                result = policy_check_one_recv(p, uid, gid, message_type, NULL, path, interface, member, label, proxy_context, &deferred_next);
+                if (result == POLICY_RESULT_LATER) {
+                        cur_deferred = cynara_deferred_message_append(cur_deferred, deferred_next);
+                        if (!tail_deferred)
+                                tail_deferred = deferred_next;
+
+                        deferred_next = NULL;
+                        later_flag = true;
+               }
         } else {
                 SET_FOREACH(n, names, i) {
+                        _cleanup_(cynara_deferred_message_freep) PolicyDeferredMessage *deferred_next = NULL;
                         last = n;
-                        allow = policy_check_one_recv(p, uid, gid, message_type, n, path, interface, member);
-                        if (allow)
+                        result = policy_check_one_recv(p, uid, gid, message_type, n, path, interface, member, label, proxy_context, &deferred_next);
+                        if (result == POLICY_RESULT_ALLOW)
                                 break;
+                        else if (result == POLICY_RESULT_LATER) {
+                                cur_deferred = cynara_deferred_message_append(cur_deferred, deferred_next);
+                                if (!tail_deferred)
+                                        tail_deferred = deferred_next;
+
+                                deferred_next = NULL;
+                                later_flag = true;
+                        }
                 }
-                if (!allow) {
+
+                if (result != POLICY_RESULT_ALLOW) {
                         STRV_FOREACH(nv, namesv) {
+                                _cleanup_(cynara_deferred_message_freep) PolicyDeferredMessage *deferred_next = NULL;
                                 last = *nv;
-                                allow = policy_check_one_recv(p, uid, gid, message_type, *nv, path, interface, member);
-                                if (allow)
+                                result = policy_check_one_recv(p, uid, gid, message_type, *nv, path, interface, member, label, proxy_context, &deferred_next);
+                                if (result == POLICY_RESULT_ALLOW)
                                         break;
+                                else if (result == POLICY_RESULT_LATER) {
+                                        cur_deferred = cynara_deferred_message_append(cur_deferred, deferred_next);
+                                        if (!tail_deferred)
+                                                tail_deferred = deferred_next;
+
+                                        deferred_next = NULL;
+                                        later_flag = true;
+                                }
                         }
                 }
         }
 
-        log_full(LOG_AUTH | (!allow ? LOG_WARNING : LOG_DEBUG),
-                 "Receive permission check %s for uid=" UID_FMT " gid=" GID_FMT" message=%s name=%s path=%s interface=%s member=%s: %s",
-                 dbus_to_kernel ? "dbus-1 to kernel" : "kernel to dbus-1", uid, gid, bus_message_type_to_string(message_type), strna(last),
-                 strna(path), strna(interface), strna(member), allow ? "ALLOW" : "DENY");
+        if (later_flag) {
+               log_full(LOG_AUTH | ((result != POLICY_RESULT_ALLOW) ? LOG_WARNING : LOG_DEBUG),
+                        "Receive permission check %s for uid=" UID_FMT " gid=" GID_FMT" message=%s name=%s path=%s interface=%s member=%s label=%s: %s (%s)",
+                        dbus_to_kernel ? "dbus-1 to kernel" : "kernel to dbus-1", uid, gid, bus_message_type_to_string(message_type), strna(last),
+                        strna(path), strna(interface), strna(member), label, "LATER", (result == POLICY_RESULT_ALLOW) ? "ALLOW" : "DENY" );
+        } else {
 
-        return allow;
+                log_full(LOG_AUTH | ((result != POLICY_RESULT_ALLOW) ? LOG_WARNING : LOG_DEBUG),
+                        "Receive permission check %s for uid=" UID_FMT " gid=" GID_FMT" message=%s name=%s path=%s interface=%s member=%s label=%s: %s",
+                        dbus_to_kernel ? "dbus-1 to kernel" : "kernel to dbus-1", uid, gid, bus_message_type_to_string(message_type), strna(last),
+                        strna(path), strna(interface), strna(member), label, (result == POLICY_RESULT_ALLOW) ? "ALLOW" : "DENY");
+        }
+
+        if (result == POLICY_RESULT_DENY && later_flag)
+                result = POLICY_RESULT_LATER;
+
+        if (result != POLICY_RESULT_LATER) {
+                /*
+                 * Deferred message list is not needed ( result != LATER) so we should
+                 * free memory. It can be done by tail_deferred pointer which points to
+                 * first element created in this scope
+                 */
+                 cynara_deferred_message_list_free(tail_deferred);
+        } else if (!(*deferred))
+                *deferred = cur_deferred;
+
+        return result;
 }
 
-bool policy_check_one_send(Policy *p,
+PolicyCheckResult policy_check_one_send(Policy *p,
                            uid_t uid,
                            gid_t gid,
                            int message_type,
                            const char *name,
                            const char *path,
                            const char *interface,
-                           const char *member) {
+                           const char *member,
+                           const char *label,
+                           ProxyContext *proxy_context,
+                           PolicyDeferredMessage **deferred) {
+        int verdict;
 
-        struct policy_check_filter filter = {
+        PolicyCheckFilter filter = {
                 .class        = POLICY_ITEM_SEND,
                 .uid          = uid,
                 .gid          = gid,
@@ -953,14 +1216,27 @@ bool policy_check_one_send(Policy *p,
                 .interface    = interface,
                 .path         = path,
                 .member       = member,
+                .label        = label,
         };
 
         assert(p);
 
-        return policy_check(p, &filter) == ALLOW;
+        verdict = policy_check(p, &filter, proxy_context, deferred);
+
+        switch(verdict) {
+        case ALLOW:
+                return POLICY_RESULT_ALLOW;
+        case DENY:
+                return POLICY_RESULT_DENY;
+        case LATER:
+                (*deferred)->type = POLICY_DEFERRED_MESSAGE_TYPE_SEND;
+                return POLICY_RESULT_LATER;
+        default:
+                return POLICY_RESULT_DENY;
+        }
 }
 
-bool policy_check_send(Policy *p,
+PolicyCheckResult policy_check_send(Policy *p,
                        uid_t uid,
                        gid_t gid,
                        int message_type,
@@ -969,30 +1245,65 @@ bool policy_check_send(Policy *p,
                        const char *path,
                        const char *interface,
                        const char *member,
+                       const char *label,
                        bool dbus_to_kernel,
-                       char **out_used_name) {
+                       char **out_used_name,
+                       ProxyContext *proxy_context,
+                       PolicyDeferredMessage **deferred) {
 
         char *n, **nv, *last = NULL;
-        bool allow = false;
+        PolicyCheckResult result = POLICY_RESULT_DENY;
         Iterator i;
-
+        bool later_flag = false;
+        PolicyDeferredMessage *cur_deferred;
+        PolicyDeferredMessage *tail_deferred;
         assert(p);
 
+        LIST_FIND_TAIL(items, *deferred, tail_deferred);
+        cur_deferred = tail_deferred;
+        tail_deferred = NULL;
         if (set_isempty(names) && strv_isempty(namesv)) {
-                allow = policy_check_one_send(p, uid, gid, message_type, NULL, path, interface, member);
+                _cleanup_(cynara_deferred_message_freep) PolicyDeferredMessage *deferred_next = NULL;
+                result = policy_check_one_send(p, uid, gid, message_type, NULL, path, interface, member, label, proxy_context, &deferred_next);
+                if (result == POLICY_RESULT_LATER) {
+                        cur_deferred = cynara_deferred_message_append(cur_deferred, deferred_next);
+                        if (!tail_deferred)
+                                tail_deferred = deferred_next;
+
+                        deferred_next = NULL;
+                        later_flag = true;
+               }
         } else {
                 SET_FOREACH(n, names, i) {
+                        _cleanup_(cynara_deferred_message_freep) PolicyDeferredMessage *deferred_next = NULL;
                         last = n;
-                        allow = policy_check_one_send(p, uid, gid, message_type, n, path, interface, member);
-                        if (allow)
+                        result = policy_check_one_send(p, uid, gid, message_type, n, path, interface, member, label, proxy_context, &deferred_next);
+                        if (result == POLICY_RESULT_ALLOW)
                                 break;
+                        else if (result == POLICY_RESULT_LATER) {
+                                cur_deferred = cynara_deferred_message_append(cur_deferred, deferred_next);
+                                if (!tail_deferred)
+                                        tail_deferred = deferred_next;
+
+                                deferred_next = NULL;
+                                later_flag = true;
+                       }
                 }
-                if (!allow) {
+                if (result != POLICY_RESULT_ALLOW) {
                         STRV_FOREACH(nv, namesv) {
+                               _cleanup_(cynara_deferred_message_freep) PolicyDeferredMessage *deferred_next = NULL;
                                 last = *nv;
-                                allow = policy_check_one_send(p, uid, gid, message_type, *nv, path, interface, member);
-                                if (allow)
+                                result = policy_check_one_send(p, uid, gid, message_type, *nv, path, interface, member, label, proxy_context, &deferred_next);
+                                if (result == POLICY_RESULT_ALLOW)
                                         break;
+                                else if (result == POLICY_RESULT_LATER) {
+                                        cur_deferred = cynara_deferred_message_append(cur_deferred, deferred_next);
+                                        if (!tail_deferred)
+                                                tail_deferred = deferred_next;
+
+                                        deferred_next = NULL;
+                                        later_flag = true;
+                                }
                         }
                 }
         }
@@ -1000,12 +1311,33 @@ bool policy_check_send(Policy *p,
         if (out_used_name)
                 *out_used_name = last;
 
-        log_full(LOG_AUTH | (!allow ? LOG_WARNING : LOG_DEBUG),
-                 "Send permission check %s for uid=" UID_FMT " gid=" GID_FMT" message=%s name=%s path=%s interface=%s member=%s: %s",
-                 dbus_to_kernel ? "dbus-1 to kernel" : "kernel to dbus-1", uid, gid, bus_message_type_to_string(message_type), strna(last),
-                 strna(path), strna(interface), strna(member), allow ? "ALLOW" : "DENY");
+        if (later_flag) {
+                log_full(LOG_AUTH | ((result != POLICY_RESULT_ALLOW) ? LOG_WARNING : LOG_DEBUG),
+                        "Send permission check %s for uid=" UID_FMT " gid=" GID_FMT" message=%s name=%s path=%s interface=%s member=%s label=%s: %s (%s)",
+                        dbus_to_kernel ? "dbus-1 to kernel" : "kernel to dbus-1", uid, gid, bus_message_type_to_string(message_type), strna(last),
+                        strna(path), strna(interface), strna(member), label, "LATER" , (result == POLICY_RESULT_ALLOW) ? "ALLOW" : "DENY");
 
-        return allow;
+        } else {
+                log_full(LOG_AUTH | ((result != POLICY_RESULT_ALLOW) ? LOG_WARNING : LOG_DEBUG),
+                        "Send permission check %s for uid=" UID_FMT " gid=" GID_FMT" message=%s name=%s path=%s interface=%s member=%s label=%s: %s",
+                        dbus_to_kernel ? "dbus-1 to kernel" : "kernel to dbus-1", uid, gid, bus_message_type_to_string(message_type), strna(last),
+                        strna(path), strna(interface), strna(member), label, (result == POLICY_RESULT_ALLOW) ? "ALLOW" : "DENY");
+        }
+
+        if (result == POLICY_RESULT_DENY && later_flag)
+                result = POLICY_RESULT_LATER;
+
+        if (result != POLICY_RESULT_LATER) {
+                /*
+                 * Deferred message list is not needed ( result != LATER) so we should
+                 * free memory. It can be done by tail_deferred pointer which points to
+                 * first element created in this scope.
+                 */
+                 cynara_deferred_message_list_free(tail_deferred);
+        } else if (!(*deferred))
+                *deferred = cur_deferred;
+
+        return result;
 }
 
 int policy_load(Policy *p, char **files) {
@@ -1140,6 +1472,12 @@ static void dump_items(PolicyItem *items, const char *prefix) {
 
                         printf("%sGroup: %s ("GID_FMT")\n",
                                prefix, strna(group), i->gid);
+                }
+
+                if (i->type == POLICY_ITEM_CHECK) {
+                        printf("%sPrivilege: %s\n",
+                                prefix, i->privilege);
+
                 }
                 printf("%s-\n", prefix);
         }
@@ -1309,6 +1647,7 @@ static const char* const policy_item_type_table[_POLICY_ITEM_TYPE_MAX] = {
         [_POLICY_ITEM_TYPE_UNSET] = "unset",
         [POLICY_ITEM_ALLOW] = "allow",
         [POLICY_ITEM_DENY] = "deny",
+        [POLICY_ITEM_CHECK] = "check",
 };
 DEFINE_STRING_TABLE_LOOKUP(policy_item_type, PolicyItemType);
 
