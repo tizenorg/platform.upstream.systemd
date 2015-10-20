@@ -63,12 +63,14 @@ typedef struct {
         int fd;
         SharedPolicy *policy;
         uid_t bus_uid;
+        BusCynara *cynara;
 } ClientContext;
 
 static ClientContext *client_context_free(ClientContext *c) {
         if (!c)
                 return NULL;
 
+        cynara_bus_unref(c->cynara);
         safe_close(c->fd);
         free(c);
 
@@ -91,13 +93,45 @@ static int client_context_new(ClientContext **out) {
         return 0;
 }
 
+static void* cynara_client(void* a) {
+        _cleanup_(cynara_bus_unrefp) BusCynara *cynara;
+        int fd;
+        int events;
+        int r;
+        struct pollfd *pollfd;
+        cynara = a;
+        log_debug("Started Cynara thread.");
+        for(;;) {
+                fd = cynara_bus_get_fd(cynara);
+                events = cynara_bus_get_events(cynara);
+
+                pollfd = (struct pollfd[2]) {
+                { .fd = fd,           .events = events & POLLIN,     },
+                { .fd = fd,           .events = events & POLLOUT,    },
+                }; 
+
+                r = ppoll(pollfd, 2, NULL, NULL);
+                if (r >= 0)
+                { 
+                        r = cynara_run_process(cynara);
+                        if (r < 0) {
+                                log_error("Cynara lib error closing task");
+                                break;
+                        }
+                }
+                
+        }
+        log_debug("Exiting Cynara Thread.");
+        return 0;
+}
+
 static void *run_client(void *userdata) {
         _cleanup_(client_context_freep) ClientContext *c = userdata;
         _cleanup_(proxy_freep) Proxy *p = NULL;
         char comm[16];
         int r;
 
-        r = proxy_new(&p, c->fd, c->fd, arg_address);
+        r = proxy_new(&p, c->fd, c->fd, c->cynara, arg_address);
         if (r < 0)
                 goto exit;
 
@@ -125,7 +159,9 @@ exit:
 
 static int loop_clients(int accept_fd, uid_t bus_uid) {
         _cleanup_(shared_policy_freep) SharedPolicy *sp = NULL;
+        _cleanup_(cynara_bus_unrefp) BusCynara *cynara = NULL;
         pthread_attr_t attr;
+        pthread_t tid;
         int r;
 
         r = pthread_attr_init(&attr);
@@ -143,10 +179,18 @@ static int loop_clients(int accept_fd, uid_t bus_uid) {
         if (r < 0)
                 goto finish;
 
+        r = bus_cynara_new(&cynara);
+        if (r < 0)
+                goto finish;
+         r = pthread_create(&tid, &attr, cynara_client, cynara);
+         if (r < 0) {
+                log_error("Cannot spawn cynara thread: %m");
+                goto finish;        
+        }
+
         for (;;) {
-                ClientContext *c;
-                pthread_t tid;
                 int fd;
+                ClientContext *c = NULL;
 
                 fd = accept4(accept_fd, NULL, NULL, SOCK_NONBLOCK | SOCK_CLOEXEC);
                 if (fd < 0) {
@@ -167,6 +211,7 @@ static int loop_clients(int accept_fd, uid_t bus_uid) {
                 c->fd = fd;
                 c->policy = sp;
                 c->bus_uid = bus_uid;
+                c->cynara = cynara_bus_ref(cynara);
 
                 r = pthread_create(&tid, &attr, run_client, c);
                 if (r < 0) {
@@ -181,10 +226,12 @@ finish:
         return r;
 }
 
+
+
 static int help(void) {
 
         printf("%s [OPTIONS...]\n\n"
-               "DBus proxy server.\n\n"
+               "DBus proxy server. 3\n\n"
                "  -h --help               Show this help\n"
                "     --version            Show package version\n"
                "     --configuration=PATH Configuration file or directory\n"
@@ -296,8 +343,8 @@ int main(int argc, char *argv[]) {
         log_parse_environment();
         log_open();
 
+log_set_max_level(7);
         bus_uid = getuid();
-
         if (geteuid() == 0) {
                 const char *user = "systemd-bus-proxy";
 

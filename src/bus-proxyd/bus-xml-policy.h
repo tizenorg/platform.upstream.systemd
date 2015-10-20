@@ -21,61 +21,10 @@
   along with systemd; If not, see <http://www.gnu.org/licenses/>.
 ***/
 
-#include <inttypes.h>
-#include <pthread.h>
+#include "policy.h"
+#include "cynara.h"
 
-#include "list.h"
-#include "hashmap.h"
-#include "set.h"
-
-typedef enum PolicyItemType {
-        _POLICY_ITEM_TYPE_UNSET = 0,
-        POLICY_ITEM_ALLOW,
-        POLICY_ITEM_DENY,
-        _POLICY_ITEM_TYPE_MAX,
-        _POLICY_ITEM_TYPE_INVALID = -1,
-} PolicyItemType;
-
-typedef enum PolicyItemClass {
-        _POLICY_ITEM_CLASS_UNSET = 0,
-        POLICY_ITEM_SEND,
-        POLICY_ITEM_RECV,
-        POLICY_ITEM_OWN,
-        POLICY_ITEM_OWN_PREFIX,
-        POLICY_ITEM_USER,
-        POLICY_ITEM_GROUP,
-        POLICY_ITEM_IGNORE,
-        _POLICY_ITEM_CLASS_MAX,
-        _POLICY_ITEM_CLASS_INVALID = -1,
-} PolicyItemClass;
-
-typedef struct PolicyItem PolicyItem;
-
-struct PolicyItem {
-        PolicyItemType type;
-        PolicyItemClass class;
-        char *interface;
-        char *member;
-        char *error;
-        char *path;
-        char *name;
-        uint8_t message_type;
-        uid_t uid;
-        gid_t gid;
-
-        bool uid_valid, gid_valid;
-
-        LIST_FIELDS(PolicyItem, items);
-};
-
-typedef struct Policy {
-        LIST_HEAD(PolicyItem, default_items);
-        LIST_HEAD(PolicyItem, mandatory_items);
-        LIST_HEAD(PolicyItem, on_console_items);
-        LIST_HEAD(PolicyItem, no_console_items);
-        Hashmap *user_items;
-        Hashmap *group_items;
-} Policy;
+typedef struct ProxyContext ProxyContext;
 
 typedef struct SharedPolicy {
         char **configuration;
@@ -90,17 +39,35 @@ typedef struct SharedPolicy {
 int policy_load(Policy *p, char **files);
 void policy_free(Policy *p);
 
-bool policy_check_own(Policy *p, uid_t uid, gid_t gid, const char *name);
-bool policy_check_hello(Policy *p, uid_t uid, gid_t gid);
-bool policy_check_one_recv(Policy *p,
+PolicyCheckResult policy_check_own(Policy *p,
+                        uid_t uid, 
+                        gid_t gid, 
+                        const char *name,
+                        const char *label,
+                        ProxyContext *proxy_context,
+                        PolicyDeferredMessage **deferred);
+
+PolicyCheckResult policy_check_hello(Policy *p,
+                        uid_t uid, 
+                        gid_t gid, 
+                        const char *label,
+                        ProxyContext *proxy_context,
+                        PolicyDeferredMessage **deferred);
+
+
+PolicyCheckResult policy_check_one_recv(Policy *p,
                            uid_t uid,
                            gid_t gid,
                            int message_type,
                            const char *name,
                            const char *path,
                            const char *interface,
-                           const char *member);
-bool policy_check_recv(Policy *p,
+                           const char *member,
+                           const char *label,
+                           ProxyContext *Client_context,
+                           PolicyDeferredMessage **deferred);
+
+PolicyCheckResult policy_check_recv(Policy *p,
                        uid_t uid,
                        gid_t gid,
                        int message_type,
@@ -109,26 +76,39 @@ bool policy_check_recv(Policy *p,
                        const char *path,
                        const char *interface,
                        const char *member,
-                       bool dbus_to_kernel);
-bool policy_check_one_send(Policy *p,
-                           uid_t uid,
-                           gid_t gid,
-                           int message_type,
-                           const char *name,
-                           const char *path,
-                           const char *interface,
-                           const char *member);
-bool policy_check_send(Policy *p,
-                       uid_t uid,
-                       gid_t gid,
-                       int message_type,
-                       Set *names,
-                       char **namesv,
-                       const char *path,
-                       const char *interface,
-                       const char *member,
+		       const char *label,
                        bool dbus_to_kernel,
-                       char **out_used_name);
+                       ProxyContext *proxy_context,
+                       PolicyDeferredMessage **deferred);
+
+PolicyCheckResult policy_check_one_send(Policy *p,
+                           uid_t uid,
+                           gid_t gid,
+                           int message_type,
+                           const char *name,
+                           const char *path,
+                           const char *interface,
+                           const char *member,
+                           const char *label,
+                           ProxyContext *proxy_context,
+                           PolicyDeferredMessage **deferred);
+
+PolicyCheckResult policy_check_send(Policy *p,
+                       uid_t uid,
+                       gid_t gid,
+                       int message_type,
+                       Set *names,
+                       char **namesv,
+                       const char *path,
+                       const char *interface,
+                       const char *member,
+                       const char *label,
+                       bool dbus_to_kernel,
+                       char **out_used_name,
+                       ProxyContext *proxy_context,
+                       PolicyDeferredMessage **deferred);
+
+PolicyCheckResult policy_check_from_deferred(PolicyMessageCheckHistory *dh, bool is_blocking);
 
 void policy_dump(Policy *p);
 

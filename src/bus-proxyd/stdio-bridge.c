@@ -233,6 +233,7 @@ static int rename_service(sd_bus *a, sd_bus *b) {
 int main(int argc, char *argv[]) {
         _cleanup_(proxy_freep) Proxy *p = NULL;
         int r;
+        ptid_t tid;
 
         log_set_target(LOG_TARGET_JOURNAL_OR_KMSG);
         log_parse_environment();
@@ -242,7 +243,7 @@ int main(int argc, char *argv[]) {
         if (r <= 0)
                 goto finish;
 
-        r = proxy_new(&p, STDIN_FILENO, STDOUT_FILENO, arg_address);
+        r = proxy_new(&p, STDIN_FILENO, STDOUT_FILENO, NULL, arg_address);
         if (r < 0)
                 goto finish;
 

@@ -42,6 +42,7 @@ BuildRequires:  pkgconfig(liblzma)
 BuildRequires:  pkgconfig(libpci)
 BuildRequires:  pkgconfig(libkmod)
 BuildRequires:  pkgconfig(mount)
+BuildRequires:  pkgconfig(cynara-client-async)
 Requires:       dbus
 Requires:       filesystem
 Requires:       hwdata
@@ -147,6 +148,7 @@ cp %{SOURCE1001} .
         --with-sysvinit-path= \
         --with-sysvrcnd-path= \
         --with-smack-run-label=System \
+        --enable-cynara \
         cc_cv_CFLAGS__flto=no
 make %{?_smp_mflags} \
         systemunitdir=%{_unitdir} \
