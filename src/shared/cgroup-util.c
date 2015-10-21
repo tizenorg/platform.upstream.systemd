@@ -1066,7 +1066,13 @@ int cg_get_root_path(char **path) {
         assert(path);
 
         r = cg_pid_get_path(SYSTEMD_CGROUP_CONTROLLER, 1, &p);
-        if (r < 0)
+        if (r == -EACCES) {
+                /* /proc/1/cgroup might not be accessible due
+                 * to security policy - assume sane default */
+                p = strdup("/");
+                if (!p)
+                        return -ENOMEM;
+        } else if (r < 0)
                 return r;
 
         e = endswith(p, "/" SPECIAL_SYSTEM_SLICE);
