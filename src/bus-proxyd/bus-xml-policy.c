@@ -1152,13 +1152,13 @@ PolicyCheckResult policy_check_recv(Policy *p,
                log_full(LOG_AUTH | ((result != POLICY_RESULT_ALLOW) ? LOG_WARNING : LOG_DEBUG),
                         "Receive permission check %s for uid=" UID_FMT " gid=" GID_FMT" message=%s name=%s path=%s interface=%s member=%s label=%s: %s (%s)",
                         dbus_to_kernel ? "dbus-1 to kernel" : "kernel to dbus-1", uid, gid, bus_message_type_to_string(message_type), strna(last),
-                        strna(path), strna(interface), strna(member), label, "LATER", (result != POLICY_RESULT_ALLOW) == POLICY_RESULT_ALLOW ? "ALLOW" : "DENY" );
+                        strna(path), strna(interface), strna(member), label, "LATER", (result == POLICY_RESULT_ALLOW) ? "ALLOW" : "DENY" );
         } else {
 
                 log_full(LOG_AUTH | ((result != POLICY_RESULT_ALLOW) ? LOG_WARNING : LOG_DEBUG),
                         "Receive permission check %s for uid=" UID_FMT " gid=" GID_FMT" message=%s name=%s path=%s interface=%s member=%s label=%s: %s",
                         dbus_to_kernel ? "dbus-1 to kernel" : "kernel to dbus-1", uid, gid, bus_message_type_to_string(message_type), strna(last),
-                        strna(path), strna(interface), strna(member), label, (result != POLICY_RESULT_ALLOW) == POLICY_RESULT_ALLOW ? "ALLOW" : "DENY");
+                        strna(path), strna(interface), strna(member), label, (result == POLICY_RESULT_ALLOW) ? "ALLOW" : "DENY");
         }
 
         if (result == POLICY_RESULT_DENY && later_flag) 
@@ -1294,13 +1294,13 @@ PolicyCheckResult policy_check_send(Policy *p,
                 log_full(LOG_AUTH | ((result != POLICY_RESULT_ALLOW) ? LOG_WARNING : LOG_DEBUG),
                         "Send permission check %s for uid=" UID_FMT " gid=" GID_FMT" message=%s name=%s path=%s interface=%s member=%s label=%s: %s (%s)",
                         dbus_to_kernel ? "dbus-1 to kernel" : "kernel to dbus-1", uid, gid, bus_message_type_to_string(message_type), strna(last),
-                        strna(path), strna(interface), strna(member), label, "LATER" , result ? "ALLOW" : "DENY");
+                        strna(path), strna(interface), strna(member), label, "LATER" , (result == POLICY_RESULT_ALLOW) ? "ALLOW" : "DENY");
 
         } else {
                 log_full(LOG_AUTH | ((result != POLICY_RESULT_ALLOW) ? LOG_WARNING : LOG_DEBUG),
                         "Send permission check %s for uid=" UID_FMT " gid=" GID_FMT" message=%s name=%s path=%s interface=%s member=%s label=%s: %s",
                         dbus_to_kernel ? "dbus-1 to kernel" : "kernel to dbus-1", uid, gid, bus_message_type_to_string(message_type), strna(last),
-                        strna(path), strna(interface), strna(member), label, result ? "ALLOW" : "DENY");
+                        strna(path), strna(interface), strna(member), label, (result == POLICY_RESULT_ALLOW) ? "ALLOW" : "DENY");
         }
 
         if (result == POLICY_RESULT_DENY && later_flag) 

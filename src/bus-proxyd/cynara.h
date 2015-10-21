@@ -41,7 +41,8 @@ struct PolicyDeferredMessage {
         PolicyCheckResult result;
         PolicyDeferredMessageType type;
         char is_repeat_policy_check_needed:1;
-
+        
+        /** fields filled by bus-policy layer*/
         PolicyItemClass class;
         uid_t uid;
         gid_t gid;
@@ -55,6 +56,7 @@ struct PolicyDeferredMessage {
 
         /** fields filled by cynara layer */
         PolicyDeferredMessageId *id;
+
         /** flieds filled by higher level */
         int wakeup_fd;
         PolicyMessageCheckHistory *guard;

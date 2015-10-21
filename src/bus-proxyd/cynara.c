@@ -86,22 +86,25 @@ static void cynara_bus_release(BusCynara *cynara) {
 
 PolicyMessageCheckHistory* cynara_deferred_check_history_acquire(PolicyMessageCheckHistory *d, bool only_for_read) {
         int r;
+        
         if (only_for_read) 
                 r = pthread_rwlock_rdlock(&d->history_lock); 
         else
                 r = pthread_rwlock_wrlock(&d->history_lock);
+        log_debug("Cynara: deferred list lock (%p), read_only=%u, result=%d", d, only_for_read, r);
         assert(!r);  
         return d;        
 }
 
 void cynara_deferred_check_history_release(PolicyMessageCheckHistory *d) {
         int r;
+
+        log_debug("Cynara: deferred list unlock (%p), result=%d", d, r);
         r = pthread_rwlock_unlock(&d->history_lock);
         assert(!r);
 }
 
-int cynara_deferred_message_new(PolicyDeferredMessage **d,
-                                PolicyCheckResult result) {
+int cynara_deferred_message_new(PolicyDeferredMessage **d, PolicyCheckResult result) {
         PolicyDeferredMessage *dm;
 
         dm = new0(PolicyDeferredMessage, 1);
@@ -150,6 +153,7 @@ PolicyDeferredMessage* cynara_deferred_message_append(PolicyDeferredMessage *d,P
 PolicyDeferredMessage* cynara_deferred_message_free(PolicyDeferredMessage *d) {
         if (d == NULL)
                 return NULL;
+        log_debug("Cynara: free deferred message (%s, %lu, %s)", d->label, (long unsigned int)d->uid, d->privilege);
 
         free(d->name);
         free(d->interface);
@@ -332,6 +336,7 @@ int bus_cynara_new(BusCynara **bus_cynara) {
                 return log_oom();
 
 #ifdef ENABLE_CYNARA
+        log_debug("Cynara connecting to cynara daemon");
         r = cynara_async_initialize(&(cynara->cynara), NULL, &status_callback, cynara);
         if (r != CYNARA_API_SUCCESS) {
                 bus_cynara_free(cynara);
@@ -442,7 +447,7 @@ CynaraPolicyResult cynara_check_privilege(BusCynara *cynara,
 
         switch (r) {
         case CYNARA_API_ACCESS_ALLOWED:
-                log_debug("Truple in cynara cahce: ALLOWED");
+                log_debug("Cynara: rule exists in cache (%s:%s:%s:%s). ALLOWED", filter->label, session_id, user, item->privilege);
                 return CYNARA_RESULT_ALLOW;
         break;
         case  CYNARA_API_CACHE_MISS:
@@ -453,15 +458,17 @@ CynaraPolicyResult cynara_check_privilege(BusCynara *cynara,
                 } else {
                         //create new data
                         r = cynara_deferred_message_new(&dm,POLICY_RESULT_LATER);
-                        if (r < 0)
+                        if (r < 0) {
+                                log_error("Cynara: cannot create deferred message");
                                 return CYNARA_RESULT_ERROR;
+                        }
                         cynara_fill_deferred_message(dm, item, filter);
                         *deferred_message = dm;
                 }
                 return POLICY_RESULT_LATER;
         break;
         }
-        log_debug("Truple in cynara cahce: DENY");
+        log_debug("Cynara: rule exists in cache (%s:%s:%s:%s). DENY", filter->label, session_id, user, item->privilege);
         return CYNARA_RESULT_DENY;
 #else
         return CYNARA_RESULT_ALLOW;
@@ -483,6 +490,7 @@ static void status_callback(int old_fd,
         BusCynara *cynara;
 
         cynara = user_status_data;
+        log_debug("Cynara status callback: %d %d %d", old_fd, new_fd, (int)status);
         if (new_fd != -1) {
                 log_debug("Cynara new fd: %u", new_fd);
                 cynara->fd = new_fd;        
@@ -503,8 +511,9 @@ static void status_callback(int old_fd,
 #endif
 PolicyCheckResult cynara_wait_for_answer(PolicyDeferredMessage *message) {
         int r;
+#ifdef ENABLE_CYNARA
         return POLICY_RESULT_ALLOW;
-
+#endif
         cynara_deferred_check_history_acquire(message->guard, false);
         if (message->result != POLICY_RESULT_LATER) {
                 cynara_deferred_check_history_release(message->guard);
@@ -535,10 +544,15 @@ PolicyCheckResult cynara_wait_for_answer(PolicyDeferredMessage *message) {
         pthread_mutex_lock(message->mutex);
         if (message->result != POLICY_RESULT_LATER)
                 goto finish;
+        log_debug("Cynara: client waits(blocked) for answer: check_id=%u, request=(%s, %lu, %s)",
+        (unsigned int)message->id->p_check_id, message->label, (long unsigned int)message->uid, message->privilege);
 
         pthread_cond_wait(message->condition, message->mutex);
         
 finish:
+        log_debug("Cynara: client gets(unblocked) answer: check_id=%u, request=(%s, %lu, %s)",
+        (unsigned int)message->id->p_check_id, message->label, (long unsigned int)message->uid, message->privilege);
+
         pthread_mutex_unlock(message->mutex);
         return message->result;
 }
@@ -546,7 +560,6 @@ finish:
 int cynara_run_process(BusCynara *cynara) {
         int r;
 #ifdef ENABLE_CYNARA
-        //TODO return cynara_async error and close thread
         cynara_bus_acquire(cynara);
         r = cynara_async_process(cynara->cynara); 
         cynara_bus_release(cynara);
@@ -567,11 +580,15 @@ static void cynara_response_received(PolicyCheckResult result, PolicyDeferredMes
         deferred_message->result = result;
         if (deferred_message->mutex) { 
                 //wakeup blocked thread by signaling
+                log_debug("Cynara received message- wakeup client thread by mutex: check_id=%u, request=(%s, %lu, %s)",
+                (unsigned int)deferred_message->id->p_check_id, deferred_message->label, (long unsigned int)deferred_message->uid, deferred_message->privilege);
                 pthread_mutex_lock(deferred_message->mutex);
                 pthread_cond_broadcast(deferred_message->condition);
                 pthread_mutex_unlock(deferred_message->mutex);
         } else if (deferred_message->wakeup_fd != -1) {
                 //wakeup blocked thread on ppoll
+                log_debug("Cynara received message- wakeup client thread by pipe: check_id=%u, request=(%s, %lu, %s)",
+                (unsigned int)deferred_message->id->p_check_id, deferred_message->label, (long unsigned int)deferred_message->uid, deferred_message->privilege);
                 r = write(deferred_message->wakeup_fd, &dummy_byte, 1);
                 cynara_deferred_check_history_release(deferred_message->guard);
                 assert(r >= 0);
@@ -586,7 +603,7 @@ static void bus_cynara_check_response_callback (cynara_check_id check_id,
         PolicyDeferredMessage *deferred_message = user_response_data;
         PolicyCheckResult result;
 
-        log_debug("Cynara callback: check_id=%u, cause=%d response=%i response_data=%p\n",
+        log_debug("Cynara callback: check_id=%u, cause=%d response=%i response_data=%p",
                 (unsigned int)check_id, (int)cause, response, user_response_data);
 
         if (deferred_message == NULL)

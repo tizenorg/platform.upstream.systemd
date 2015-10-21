@@ -415,7 +415,6 @@ int proxy_hello_policy(Proxy *p, uid_t original_uid) {
         PolicyDeferredMessage *deferred_message = NULL;
         char *label = NULL;
 
-//TODO set label
         assert(p);
 	context = p->proxy_context;
         label = p->destination_bus->fake_label;
@@ -654,7 +653,7 @@ static int process_policy_unlocked(sd_bus *from, sd_bus *to, sd_bus_message *m, 
                 if (m->destination) {
                         r = bus_get_name_creds_kdbus(to, m->destination,
                                                      SD_BUS_CREDS_WELL_KNOWN_NAMES|SD_BUS_CREDS_UNIQUE_NAME|
-                                                     SD_BUS_CREDS_EUID|SD_BUS_CREDS_EGID|SD_BUS_CREDS_PID,
+                                                     SD_BUS_CREDS_EUID|SD_BUS_CREDS_EGID|SD_BUS_CREDS_PID|SD_BUS_CREDS_SELINUX_CONTEXT,
                                                      true, &destination_creds);
                         if (r < 0)
                                 return handle_policy_error(m, r);
@@ -1075,8 +1074,7 @@ static int proxy_process_queue(Proxy *p, int direction) {
         BusCynara *cynara;
         PolicyCheckResult result;        
         int r;
-//TODO
-return 1;
+
         cynara = p->proxy_context->cynara;
         if (direction == PROXY_DIR_LOCAL_TO_DEST) {
                 from = p->local_bus;

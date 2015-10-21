@@ -231,7 +231,7 @@ finish:
 static int help(void) {
 
         printf("%s [OPTIONS...]\n\n"
-               "DBus proxy server. 3\n\n"
+               "DBus proxy server. 4\n\n"
                "  -h --help               Show this help\n"
                "     --version            Show package version\n"
                "     --configuration=PATH Configuration file or directory\n"
