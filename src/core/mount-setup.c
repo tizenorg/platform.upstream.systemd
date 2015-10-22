@@ -113,8 +113,13 @@ static const MountPoint mount_table[] = {
           is_efi_boot,   MNT_NONE                   },
 #endif
 #ifdef ENABLE_KDBUS
+#ifdef HAVE_SMACK
+        { "kdbusfs",    "/sys/fs/kdbus",             "kdbusfs",    "smackfsdef=*", MS_NOSUID|MS_NOEXEC|MS_NODEV,
+          NULL,       MNT_IN_CONTAINER },
+#else
         { "kdbusfs",    "/sys/fs/kdbus",             "kdbusfs",    NULL, MS_NOSUID|MS_NOEXEC|MS_NODEV,
           NULL,       MNT_IN_CONTAINER },
+#endif
 #endif
 };
 
