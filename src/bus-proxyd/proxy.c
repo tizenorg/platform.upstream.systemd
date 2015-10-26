@@ -577,6 +577,7 @@ static int process_policy_unlocked(sd_bus *from, sd_bus *to, sd_bus_message *m, 
                 return POLICY_OK;
 
         if (from->is_kernel) {
+                _cleanup_bus_creds_unref_ sd_bus_creds *sender_creds = NULL;
                 uid_t sender_uid = UID_INVALID;
                 gid_t sender_gid = GID_INVALID;
                 _cleanup_bus_creds_unref_ sd_bus_creds *receiver_creds = NULL;
@@ -585,7 +586,7 @@ static int process_policy_unlocked(sd_bus *from, sd_bus *to, sd_bus_message *m, 
 
                 /* Driver messages are always OK */
                 if (streq_ptr(m->sender, "org.freedesktop.DBus"))
-                        return 0;
+                        return POLICY_OK;
 
                 /* The message came from the kernel, and is sent to our legacy client. */
                 (void) sd_bus_creds_get_well_known_names(&m->creds, &sender_names);
@@ -594,8 +595,8 @@ static int process_policy_unlocked(sd_bus *from, sd_bus *to, sd_bus_message *m, 
                 (void) sd_bus_creds_get_egid(&m->creds, &sender_gid);
                 (void) sd_bus_creds_get_selinux_context(&m->creds, &sender_label); 
 
-                if (sender_uid == UID_INVALID || sender_gid == GID_INVALID || sender_label) {
-                        _cleanup_bus_creds_unref_ sd_bus_creds *sender_creds = NULL;
+                //log_debug("Got sender creds from well known names: uid=%lu, gid=%lu, label=%s",(unsigned long int)sender_uid, (unsigned long int)sender_gid, sender_label);
+                if (sender_uid == UID_INVALID || sender_gid == GID_INVALID || !sender_label || !(*sender_label)) {
 
                         /* If the message came from another legacy
                          * client, then the message creds will be
@@ -611,9 +612,11 @@ static int process_policy_unlocked(sd_bus *from, sd_bus *to, sd_bus_message *m, 
                         (void) sd_bus_creds_get_euid(sender_creds, &sender_uid);
                         (void) sd_bus_creds_get_egid(sender_creds, &sender_gid);
                         (void) sd_bus_creds_get_selinux_context(sender_creds, &sender_label);
-
+                        //log_debug("Got sender creds from kdbus: sender=%s, uid=%lu, gid=%lu, label=%s", m->sender, (unsigned long int)sender_uid, (unsigned long int)sender_gid, sender_label);
                 }
                 recv_label = from->fake_label;
+                //log_debug("Sender creds: uid=%lu, gid=%lu, label=%s", (unsigned long int)sender_uid, (unsigned long int)sender_gid, sender_label);
+
                 //TODO
                // r = sd_bus_get_owner_creds(from, SD_BUS_CREDS_SELINUX_CONTEXT, &receiver_creds);
                // if (r < 0)
