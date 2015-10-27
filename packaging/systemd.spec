@@ -35,11 +35,9 @@ BuildRequires:  xsltproc
 BuildRequires:  docbook-xsl-stylesheets
 BuildRequires:  pam-devel
 BuildRequires:  pkgconfig
-BuildRequires:  usbutils >= 0.82
 BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(liblzma)
-BuildRequires:  pkgconfig(libpci)
 BuildRequires:  pkgconfig(libkmod)
 BuildRequires:  pkgconfig(mount)
 Requires:       dbus
