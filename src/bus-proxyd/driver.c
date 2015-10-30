@@ -541,13 +541,18 @@ int bus_proxy_process_driver(sd_bus *a, sd_bus *b, sd_bus_message *m, SharedPoli
                         Policy *policy;
                         PolicyCheckResult res;
 
+                        label = a->fake_label;
                         policy = shared_policy_acquire(sp);
                         res = policy_check_own(policy, ucred->uid, ucred->gid, name, label, proxy_context, deferred);
                         shared_policy_release(sp, policy);
                         if (res == POLICY_RESULT_DENY)
                                 return synthetic_reply_method_errno(m, -EPERM, NULL);
-                        else if(res == POLICY_RESULT_LATER)
+                        else if(res == POLICY_RESULT_LATER) {
+                                r = sd_bus_message_rewind(m, true);
+                                if (r < 0)
+                                        return r;
                                 return res;
+                        }
                 }
 
                 if ((flags & ~(BUS_NAME_ALLOW_REPLACEMENT|BUS_NAME_REPLACE_EXISTING|BUS_NAME_DO_NOT_QUEUE)) != 0)

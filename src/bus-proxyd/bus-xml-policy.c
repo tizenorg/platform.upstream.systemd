@@ -703,6 +703,13 @@ static int is_permissive(PolicyItem *i, const PolicyCheckFilter *filter, ProxyCo
                 CynaraPolicyResult r;
                 cynara = proxy_ref_bus_cynara(proxy_context);
 
+                log_debug("Check because of policy: (%s,%s,%s-- %s,%s,%s,%s,%s,%s, %lu,%lu, %lu,%lu)",
+                                policy_item_type_to_string(i->type), policy_item_class_to_string(i->class),
+                                bus_message_type_to_string(i->message_type),
+                                i->interface, i->member, i->error, i->path, i->name, i->privilege,
+                                (unsigned long int)i->uid, (unsigned long int) i->gid,
+                                (unsigned long int)filter->uid, (unsigned long int) filter->gid
+                                );
                 r = cynara_check_privilege(cynara, i, filter, deferred_message);
                 switch (r) {
                 case CYNARA_RESULT_ALLOW:
@@ -714,9 +721,17 @@ static int is_permissive(PolicyItem *i, const PolicyCheckFilter *filter, ProxyCo
 		        return DENY;
                 }
 	} else {
-                
+                if (i->type == POLICY_ITEM_ALLOW)
+                        log_debug("Allow because of policy: (%s,%s,%s-- %s,%s,%s,%s,%s,%s, %lu,%lu, %lu, %lu)",
+                                policy_item_type_to_string(i->type), policy_item_class_to_string(i->class),
+                                bus_message_type_to_string(i->message_type),
+                                i->interface, i->member, i->error, i->path, i->name, i->privilege,
+                                (unsigned long int)i->uid, (unsigned long int) i->gid,
+                                (unsigned long int)filter->uid, (unsigned long int) filter->gid);
+ 
         	return (i->type == POLICY_ITEM_ALLOW) ? ALLOW : DENY;
         }
+
         return DUNNO;
 }
 
@@ -825,7 +840,6 @@ static int policy_check(Policy *p, const PolicyCheckFilter *filter, ProxyContext
          *
          *  Later rules override earlier rules.
          */
-
         verdict = check_policy_items(p->default_items, filter, proxy_context, deferred);
 
         if (filter->gid != GID_INVALID) {
@@ -862,9 +876,10 @@ static int policy_check(Policy *p, const PolicyCheckFilter *filter, ProxyContext
 
 static PolicyCheckResult policy_get_result_from_deferred(PolicyMessageCheckHistory *dh, bool is_blocking, PolicyDeferredMessage *dm) {
         PolicyCheckResult res;
-        if (is_blocking)
+
+        if (is_blocking) {
                 res = cynara_wait_for_answer(dm);
-        else {
+       } else {
                 cynara_deferred_check_history_acquire(dh, true);
                 res = dm->result;
                 cynara_deferred_check_history_release(dh); 
@@ -879,14 +894,17 @@ PolicyCheckResult policy_check_from_deferred(PolicyMessageCheckHistory *dh, bool
         PolicyCheckResult res = POLICY_RESULT_DENY;
         PolicyCheckResult res_tmp = POLICY_RESULT_DENY;
 
-        if (!dh)
+        if (!dh) {
                 return POLICY_RESULT_DENY;
+        }
 
-	if (dh->result != POLICY_RESULT_LATER)
+	if (dh->result != POLICY_RESULT_LATER) {
 		return dh->result;
+        }
 
         type = dh->history->type;
-        LIST_FOREACH(items, dh->history, i) {
+        i = dh->history;
+        LIST_FOREACH(items, i, dh->history) {
                 if (i->type == POLICY_DEFERRED_MESSAGE_TYPE_NONE)
                         i->type = type;
                 switch (i->type) {
@@ -902,16 +920,17 @@ PolicyCheckResult policy_check_from_deferred(PolicyMessageCheckHistory *dh, bool
                         res = policy_get_result_from_deferred(dh, is_blocking, i);
                         if (res == POLICY_RESULT_LATER)
                                 return res;
-                        else if (res_tmp != POLICY_RESULT_ALLOW && res == POLICY_RESULT_ALLOW)
-                                res_tmp = POLICY_RESULT_ALLOW;
+                        else if (res_tmp != POLICY_RESULT_ALLOW)
+                                res_tmp = res;
                 break;
                 case POLICY_DEFERRED_MESSAGE_TYPE_OWN:
-                //should always be one
+                        //should always be one
 			if (type == i->type) 
                                 return policy_get_result_from_deferred(dh, is_blocking, i);
                 break;
                 case  POLICY_DEFERRED_MESSAGE_TYPE_HELLO:
                         // to first deny
+                        res_tmp = POLICY_RESULT_ALLOW;
                         if (type == i->type) { 
                                 res = policy_get_result_from_deferred(dh, is_blocking, i);
                                 if (res == POLICY_RESULT_LATER || res == POLICY_RESULT_DENY) 
@@ -924,7 +943,7 @@ PolicyCheckResult policy_check_from_deferred(PolicyMessageCheckHistory *dh, bool
                 }
                 type = i->type;
         }
-        return POLICY_RESULT_ALLOW;        
+        return res_tmp;        
 }
 
 
@@ -952,8 +971,13 @@ PolicyCheckResult policy_check_own(Policy *p,
         verdict = policy_check(p, &filter, proxy_context, deferred);
 
         log_full(LOG_AUTH | (verdict != ALLOW ? LOG_WARNING : LOG_DEBUG),
-                 "Ownership permission check for uid=" UID_FMT " gid=" GID_FMT" name=%s: %s",
-                 uid, gid, strna(name), strna(verdict_to_string(verdict)));
+                 "Ownership permission check for uid=" UID_FMT " gid=" GID_FMT" name=%s label=%s: %s",
+                 uid, gid, strna(name), label, strna(verdict_to_string(verdict)));
+
+        if (verdict != LATER) {        
+                cynara_deferred_message_list_free(*deferred);
+                *deferred = NULL;
+        }
 
         switch(verdict) {
         case ALLOW:
@@ -1015,11 +1039,12 @@ PolicyCheckResult policy_check_hello(Policy *p,
                 }
         }
 
-        log_full(LOG_AUTH | (verdict != ALLOW ? LOG_WARNING : LOG_DEBUG),
-                 "Hello permission check for uid=" UID_FMT " gid=" GID_FMT": %s",
-                 uid, gid, strna(verdict_to_string(verdict)));
         if (result_later)
                 verdict = LATER;
+
+        log_full(LOG_AUTH | (verdict != ALLOW ? LOG_WARNING : LOG_DEBUG),
+                 "Hello permission check for uid=" UID_FMT " gid=" GID_FMT" label=%s: %s",
+                 uid, gid, label, strna(verdict_to_string(verdict)));
 
         switch (verdict) {
         case ALLOW:

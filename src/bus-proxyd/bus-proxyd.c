@@ -92,33 +92,67 @@ static int client_context_new(ClientContext **out) {
         c = NULL;
         return 0;
 }
+static int cynara_process_wakeup(int fd, struct pollfd* pollfd) {
+        if (pollfd->revents & POLLIN) {
+                int r;
+                char dummy_buffer[32];
+                
+                log_debug("Cynara woke up by block fd=%d).",fd);
 
+                while ((r = read(fd, dummy_buffer, 32)) > 0);
+                if (r < 0 && r != -1)
+                        return r;
+                return 1;
+        } else {
+                log_debug("Cynara woke up by cynara daemon.");
+        }
+        return 0;
+}
 static void* cynara_client(void* a) {
         _cleanup_(cynara_bus_unrefp) BusCynara *cynara;
         int fd;
+        int block_fd;
         int events;
+        int fd_num;
         int r;
         struct pollfd *pollfd;
         cynara = a;
+        block_fd = cynara_bus_get_block_fd(cynara);
+
+        pollfd = (struct pollfd[3]) {
+                { .fd = block_fd,     .events = POLLIN,      },
+                { .fd = fd,           .events = events & POLLIN,     },
+                { .fd = fd,           .events = events & POLLOUT,    },
+       }; 
+
+
         log_debug("Started Cynara thread.");
         for(;;) {
                 fd = cynara_bus_get_fd(cynara);
-                events = cynara_bus_get_events(cynara);
+                if (fd < 0) {
+                        fd_num = 1;
+                } else {
+                        fd_num = 3;
+                        
+                        events = cynara_bus_get_events(cynara);
+                        pollfd[1].fd = fd;
+                        pollfd[1].events = events & POLLIN;
+                        pollfd[2].fd = fd;
+                        pollfd[2].events = events & POLLOUT;
+                }
 
-                pollfd = (struct pollfd[2]) {
-                { .fd = fd,           .events = events & POLLIN,     },
-                { .fd = fd,           .events = events & POLLOUT,    },
-                }; 
-
-                r = ppoll(pollfd, 2, NULL, NULL);
+                r = ppoll(pollfd, fd_num, NULL, NULL);
+                cynara_process_wakeup(block_fd, &pollfd[0]);
                 if (r >= 0)
-                { 
+                {
                         r = cynara_run_process(cynara);
                         if (r < 0) {
                                 log_error("Cynara lib error closing task");
+                                sleep(1);
                                 break;
                         }
-                }
+                } else
+                        log_error("ppol error cynara: %d %d", fd, r);
                 
         }
         log_debug("Exiting Cynara Thread.");
@@ -231,7 +265,7 @@ finish:
 static int help(void) {
 
         printf("%s [OPTIONS...]\n\n"
-               "DBus proxy server. 4\n\n"
+               "DBus proxy server.\n\n"
                "  -h --help               Show this help\n"
                "     --version            Show package version\n"
                "     --configuration=PATH Configuration file or directory\n"

@@ -87,8 +87,8 @@ int proxy_context_new(ProxyContext **pc, BusCynara *bus_cynara) {
         if (r < 0)
                 return r;
 
-        p->wakeup_fd = fds[0];
-        p->block_fd = fds[1];
+        p->wakeup_fd = fds[1];
+        p->block_fd = fds[0];
         r = fd_nonblock(p->wakeup_fd, true);
         if (r < 0)
                 return r;
@@ -595,7 +595,6 @@ static int process_policy_unlocked(sd_bus *from, sd_bus *to, sd_bus_message *m, 
                 (void) sd_bus_creds_get_egid(&m->creds, &sender_gid);
                 (void) sd_bus_creds_get_selinux_context(&m->creds, &sender_label); 
 
-                //log_debug("Got sender creds from well known names: uid=%lu, gid=%lu, label=%s",(unsigned long int)sender_uid, (unsigned long int)sender_gid, sender_label);
                 if (sender_uid == UID_INVALID || sender_gid == GID_INVALID || !sender_label || !(*sender_label)) {
 
                         /* If the message came from another legacy
@@ -612,16 +611,8 @@ static int process_policy_unlocked(sd_bus *from, sd_bus *to, sd_bus_message *m, 
                         (void) sd_bus_creds_get_euid(sender_creds, &sender_uid);
                         (void) sd_bus_creds_get_egid(sender_creds, &sender_gid);
                         (void) sd_bus_creds_get_selinux_context(sender_creds, &sender_label);
-                        //log_debug("Got sender creds from kdbus: sender=%s, uid=%lu, gid=%lu, label=%s", m->sender, (unsigned long int)sender_uid, (unsigned long int)sender_gid, sender_label);
                 }
                 recv_label = from->fake_label;
-                //log_debug("Sender creds: uid=%lu, gid=%lu, label=%s", (unsigned long int)sender_uid, (unsigned long int)sender_gid, sender_label);
-
-                //TODO
-               // r = sd_bus_get_owner_creds(from, SD_BUS_CREDS_SELINUX_CONTEXT, &receiver_creds);
-               // if (r < 0)
-               //         return handle_policy_error(m, r);
-               // (void) sd_bus_creds_get_selinux_context(receiver_creds, &recv_label);
 
                 /* First check whether the sender can send the message to our name */
                 r_send = policy_check_send(policy, sender_uid, sender_gid, m->header->type, owned_names, NULL, m->path, m->interface, m->member, sender_label, false, NULL, proxy_context, deferred);
@@ -671,12 +662,7 @@ static int process_policy_unlocked(sd_bus *from, sd_bus *to, sd_bus_message *m, 
                         (void) sd_bus_creds_get_egid(destination_creds, &destination_gid);
                         (void) sd_bus_creds_get_selinux_context(destination_creds, &recv_label); 
                 }
-//TODO
                 sender_label = to->fake_label;
-//                r = sd_bus_get_owner_creds(to, SD_BUS_CREDS_SELINUX_CONTEXT, &sender_creds);
- //               if (r < 0)
- //                       return handle_policy_error(m, r);
- //               (void) sd_bus_creds_get_selinux_context(sender_creds, &sender_label);
 
                 /* First check if we (the sender) can send to this name */
                 r_send = policy_check_send(policy, our_ucred->uid, our_ucred->gid, m->header->type, NULL, destination_names, m->path, m->interface, m->member, sender_label, true, &n, proxy_context, deferred);
@@ -905,7 +891,7 @@ static int proxy_process_destination_to_local(Proxy *p) {
 				
                         return 0;
                 } else if (r > 0) {
-                        log_debug("Message drop because of process policy result");
+                        log_debug("Message drop because of process policy result(%s->%s: %s)", m->sender, m->destination, m->path);
                         return 1;
                 }
         }
@@ -951,7 +937,7 @@ static int proxy_process_destination_to_local(Proxy *p) {
 static int proxy_process_local_to_destination(Proxy *p) {
         int r;
         int wakeup_fd;
-        PolicyDeferredMessage *deferred_message;
+        PolicyDeferredMessage *deferred_message = NULL;
         _cleanup_bus_message_unref_ sd_bus_message *m = NULL;
         assert(p);
         
@@ -1020,7 +1006,7 @@ static int proxy_process_local_to_destination(Proxy *p) {
 				
 				return 0;
                         } else if (r > 0) {
-                                log_debug("Message drop because of process policy result");
+                                log_debug("Message drop because of process policy result(%s->%s: %s)",m->sender, m->destination, m->path);
                                 return 1;
                         }
                 }
@@ -1073,7 +1059,7 @@ static int proxy_process_queue(Proxy *p, int direction) {
         PolicyMessageCheckHistory *i;
         sd_bus *from;
         sd_bus *to;
-        PolicyDeferredMessage *deferred_message;
+        PolicyDeferredMessage *deferred_message = NULL;
         BusCynara *cynara;
         PolicyCheckResult result;        
         int r;
@@ -1134,6 +1120,11 @@ static int proxy_process_queue(Proxy *p, int direction) {
                 } else if (result == POLICY_RESULT_DENY) {
                         //LOG_DEBUG
                         log_debug("Proxy queue(%s): result=RESULT_DENY, address=0x%08x", proxy_dir_to_string(direction), (int)i);
+                        /* Return an error back to the caller */
+                        if (i->message->header->type == SD_BUS_MESSAGE_METHOD_CALL)
+                                synthetic_reply_method_errorf(i->message, SD_BUS_ERROR_ACCESS_DENIED, "Access prohibited by XML policy.");
+
+
                 }
                 
                 if (allow) {

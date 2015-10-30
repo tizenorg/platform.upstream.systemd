@@ -98,6 +98,7 @@ BusCynara* bus_cynara_free(BusCynara *bus_cynara);
 
 int cynara_bus_get_fd(BusCynara *cynara);
 int cynara_bus_get_events(BusCynara *cynara);
+int cynara_bus_get_block_fd(BusCynara *cynara);
 
 BusCynara* cynara_bus_ref(BusCynara *c);
 BusCynara* cynara_bus_unref(BusCynara* c);
