@@ -147,12 +147,11 @@ static void* cynara_client(void* a) {
                 {
                         r = cynara_run_process(cynara);
                         if (r < 0) {
-                                log_error("Cynara lib error closing task");
-                                sleep(1);
+                                log_error("Cynara lib error closing task.");
                                 break;
                         }
                 } else
-                        log_error("ppol error cynara: %d %d", fd, r);
+                        log_error("ppol error cynara: %d %d.", fd, r);
                 
         }
         log_debug("Exiting Cynara Thread.");

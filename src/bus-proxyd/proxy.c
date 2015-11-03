@@ -440,6 +440,8 @@ int proxy_hello_policy(Proxy *p, uid_t original_uid) {
                 policy_result = policy_check_from_deferred(history, true); 
                 if(policy_result != POLICY_RESULT_ALLOW)
                         r = log_error_errno(EPERM, "Policy denied connection.");
+                
+                log_debug("Permitting access due to cynara answer.");
         } else
                 r = log_error_errno(EPERM, "Policy denied connection.");
 hello_exit:
@@ -617,9 +619,10 @@ static int process_policy_unlocked(sd_bus *from, sd_bus *to, sd_bus_message *m, 
                 /* First check whether the sender can send the message to our name */
                 r_send = policy_check_send(policy, sender_uid, sender_gid, m->header->type, owned_names, NULL, m->path, m->interface, m->member, sender_label, false, NULL, proxy_context, deferred);
                 r_recv = policy_check_recv(policy, our_ucred->uid, our_ucred->gid, m->header->type, NULL, sender_names, m->path, m->interface, m->member, recv_label, false, proxy_context, deferred);
+
                 if(r_send == r_recv && r_send == POLICY_RESULT_ALLOW)
                         return POLICY_OK;
-                else if (r_send == POLICY_RESULT_LATER || r_recv == POLICY_RESULT_LATER)
+                else if (r_send == POLICY_RESULT_LATER || r_recv == POLICY_RESULT_LATER) 
                         return POLICY_LATER;
 
                 /* Return an error back to the caller */
@@ -704,6 +707,11 @@ static int process_policy_unlocked(sd_bus *from, sd_bus *to, sd_bus_message *m, 
                         }
                 } else if (r_send == POLICY_RESULT_LATER) {
                         (*deferred)->is_repeat_policy_check_needed = 1;
+                        //rewwind because we will procceed again
+                        r = sd_bus_message_rewind(m, true);
+                        if (r < 0)
+                                return r;
+
                         return POLICY_LATER;
                 }
 
@@ -885,13 +893,14 @@ static int proxy_process_destination_to_local(Proxy *p) {
                         if (r < 0)
                                 return r;
 
+                        h->proxy_state = PROXY_STATE_DRIVER; 
                         r = proxy_context_add_history(p, h, &(p->proxy_context->dest_to_local_q));
                         if (r < 0) 
                                 return r;        
 				
                         return 0;
                 } else if (r > 0) {
-                        log_debug("Message drop because of process policy result(%s->%s: %s)", m->sender, m->destination, m->path);
+                        log_debug("Message drop because of process policy result(%s->%s: %s).", m->sender, m->destination, m->path);
                         return 1;
                 }
         }
@@ -1000,13 +1009,13 @@ static int proxy_process_local_to_destination(Proxy *p) {
                                 if (r < 0)
                                         return r;
 
+                                h->proxy_state = PROXY_STATE_POLICY; 
                                 r = proxy_context_add_history(p, h, &(p->proxy_context->local_to_dest_q));
                                 if (r < 0) 
                                         return r;        
-				
 				return 0;
                         } else if (r > 0) {
-                                log_debug("Message drop because of process policy result(%s->%s: %s)",m->sender, m->destination, m->path);
+                                log_debug("Message drop because of process policy result(%s->%s: %s).",m->sender, m->destination, m->path);
                                 return 1;
                         }
                 }
@@ -1118,8 +1127,6 @@ static int proxy_process_queue(Proxy *p, int direction) {
                         } else 
                                 allow = true;
                 } else if (result == POLICY_RESULT_DENY) {
-                        //LOG_DEBUG
-                        log_debug("Proxy queue(%s): result=RESULT_DENY, address=0x%08x", proxy_dir_to_string(direction), (int)i);
                         /* Return an error back to the caller */
                         if (i->message->header->type == SD_BUS_MESSAGE_METHOD_CALL)
                                 synthetic_reply_method_errorf(i->message, SD_BUS_ERROR_ACCESS_DENIED, "Access prohibited by XML policy.");

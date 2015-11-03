@@ -703,13 +703,6 @@ static int is_permissive(PolicyItem *i, const PolicyCheckFilter *filter, ProxyCo
                 CynaraPolicyResult r;
                 cynara = proxy_ref_bus_cynara(proxy_context);
 
-                log_debug("Check because of policy: (%s,%s,%s-- %s,%s,%s,%s,%s,%s, %lu,%lu, %lu,%lu)",
-                                policy_item_type_to_string(i->type), policy_item_class_to_string(i->class),
-                                bus_message_type_to_string(i->message_type),
-                                i->interface, i->member, i->error, i->path, i->name, i->privilege,
-                                (unsigned long int)i->uid, (unsigned long int) i->gid,
-                                (unsigned long int)filter->uid, (unsigned long int) filter->gid
-                                );
                 r = cynara_check_privilege(cynara, i, filter, deferred_message);
                 switch (r) {
                 case CYNARA_RESULT_ALLOW:
@@ -720,17 +713,8 @@ static int is_permissive(PolicyItem *i, const PolicyCheckFilter *filter, ProxyCo
                 case CYNARA_RESULT_DENY: 
 		        return DENY;
                 }
-	} else {
-                if (i->type == POLICY_ITEM_ALLOW)
-                        log_debug("Allow because of policy: (%s,%s,%s-- %s,%s,%s,%s,%s,%s, %lu,%lu, %lu, %lu)",
-                                policy_item_type_to_string(i->type), policy_item_class_to_string(i->class),
-                                bus_message_type_to_string(i->message_type),
-                                i->interface, i->member, i->error, i->path, i->name, i->privilege,
-                                (unsigned long int)i->uid, (unsigned long int) i->gid,
-                                (unsigned long int)filter->uid, (unsigned long int) filter->gid);
- 
+	} else
         	return (i->type == POLICY_ITEM_ALLOW) ? ALLOW : DENY;
-        }
 
         return DUNNO;
 }
@@ -1125,7 +1109,6 @@ PolicyCheckResult policy_check_recv(Policy *p,
         LIST_FIND_TAIL(items, *deferred, tail_deferred);
         cur_deferred = tail_deferred;
         tail_deferred = NULL;
-
         if (set_isempty(names) && strv_isempty(namesv)) {
                 _cleanup_(cynara_deferred_message_freep) PolicyDeferredMessage *deferred_next = NULL;
                 result = policy_check_one_recv(p, uid, gid, message_type, NULL, path, interface, member, label, proxy_context, &deferred_next);
@@ -1144,12 +1127,10 @@ PolicyCheckResult policy_check_recv(Policy *p,
                         if (result == POLICY_RESULT_ALLOW)
                                 break;
                         else if (result == POLICY_RESULT_LATER) {
-                                
                                 cur_deferred = cynara_deferred_message_append(cur_deferred, deferred_next); 
                                 if (!tail_deferred)
                                         tail_deferred = deferred_next;
-                                //--> if ( (*deferred)->type != deferred_next->type) deferred_next->is_check_head = 1;
-                                // ale to chyba nie obowiazkowe
+
                                 deferred_next = NULL;
                                 later_flag = true;
                         }
@@ -1165,6 +1146,7 @@ PolicyCheckResult policy_check_recv(Policy *p,
                                         cur_deferred = cynara_deferred_message_append(cur_deferred, deferred_next);
                                         if (!tail_deferred)
                                                 tail_deferred = deferred_next;
+
                                         deferred_next = NULL;
                                         later_flag = true;
                                 }
@@ -1196,7 +1178,9 @@ PolicyCheckResult policy_check_recv(Policy *p,
                  * first element created in this scope 
                  */      
                  cynara_deferred_message_list_free(tail_deferred);
-        }
+        } else if (!(*deferred))
+                *deferred = cur_deferred;
+
         return result;
 }
 
@@ -1268,7 +1252,6 @@ PolicyCheckResult policy_check_send(Policy *p,
         LIST_FIND_TAIL(items, *deferred, tail_deferred);
         cur_deferred = tail_deferred;
         tail_deferred = NULL;
-
         if (set_isempty(names) && strv_isempty(namesv)) {
                 _cleanup_(cynara_deferred_message_freep) PolicyDeferredMessage *deferred_next = NULL;
                 result = policy_check_one_send(p, uid, gid, message_type, NULL, path, interface, member, label, proxy_context, &deferred_next);
@@ -1276,6 +1259,7 @@ PolicyCheckResult policy_check_send(Policy *p,
                         cur_deferred = cynara_deferred_message_append(cur_deferred, deferred_next); 
                         if (!tail_deferred)
                                 tail_deferred = deferred_next;
+
                         deferred_next = NULL;
                         later_flag = true;
                }
@@ -1290,6 +1274,7 @@ PolicyCheckResult policy_check_send(Policy *p,
                                 cur_deferred = cynara_deferred_message_append(cur_deferred, deferred_next);
                                 if (!tail_deferred)
                                         tail_deferred = deferred_next;
+
                                 deferred_next = NULL;
                                 later_flag = true;
                        }
@@ -1305,6 +1290,7 @@ PolicyCheckResult policy_check_send(Policy *p,
                                         cur_deferred = cynara_deferred_message_append(cur_deferred, deferred_next);
                                         if (!tail_deferred)
                                                 tail_deferred = deferred_next;
+
                                         deferred_next = NULL;
                                         later_flag = true;
                                 }
@@ -1338,7 +1324,8 @@ PolicyCheckResult policy_check_send(Policy *p,
                  * first element created in this scope 
                  */      
                  cynara_deferred_message_list_free(tail_deferred);
-        }
+        } else if (!(*deferred))
+                *deferred = cur_deferred;
         
         return result;
 }
