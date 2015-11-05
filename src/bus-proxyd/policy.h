@@ -5,7 +5,8 @@
 /***
   This file is part of systemd.
 
-  Copyright 2013 Lennart Poettering
+  Copyright (c) 2015 Samsung Electronics, Ltd.
+  Kazimierz Krosman <k.krosman@samsung.com>
 
   systemd is free software; you can redistribute it and/or modify it
   under the terms of the GNU Lesser General Public License as published by
@@ -36,7 +37,7 @@ typedef enum PolicyItemType {
         _POLICY_ITEM_TYPE_UNSET = 0,
         POLICY_ITEM_ALLOW,
         POLICY_ITEM_DENY,
-	POLICY_ITEM_CHECK,
+        POLICY_ITEM_CHECK,
         _POLICY_ITEM_TYPE_MAX,
         _POLICY_ITEM_TYPE_INVALID = -1,
 } PolicyItemType;
@@ -55,9 +56,9 @@ typedef enum PolicyItemClass {
 } PolicyItemClass;
 
 typedef enum PolicyCheckResult {
-	POLICY_RESULT_DENY = 0,
-	POLICY_RESULT_ALLOW,
-	POLICY_RESULT_LATER,
+        POLICY_RESULT_DENY = 0,
+        POLICY_RESULT_ALLOW,
+        POLICY_RESULT_LATER,
 } PolicyCheckResult;
 
 typedef struct PolicyItem PolicyItem;
@@ -73,10 +74,10 @@ struct PolicyItem {
         uint8_t message_type;
         uid_t uid;
         gid_t gid;
-	char* privilege;	
+        char* privilege;
 
         bool uid_valid, gid_valid;
-	
+
         LIST_FIELDS(PolicyItem, items);
 };
 
@@ -99,7 +100,7 @@ typedef struct PolicyCheckFilter {
         const char *interface;
         const char *path;
         const char *member;
-	const char *label;
+        const char *label;
 } PolicyCheckFilter;
 
 typedef enum PolicyDeferredMessageType {

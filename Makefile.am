@@ -606,7 +606,8 @@ EXTRA_DIST += \
 	units/initrd-udevadm-cleanup-db.service.in \
 	units/initrd-switch-root.service.in \
 	units/systemd-nspawn@.service.in \
-	units/systemd-update-done.service.in
+	units/systemd-update-done.service.in \
+	units/tmp.mount.m4
 
 CLEANFILES += \
 	units/console-shell.service.m4 \
@@ -1793,7 +1794,7 @@ test_tables_CPPFLAGS = \
 test_tables_CFLAGS = \
 	$(AM_CFLAGS) \
 	$(CYNARA_CFLAGS) \
-	$(SECCOMP_CFLAGS) 
+	$(SECCOMP_CFLAGS)
 
 test_tables_LDADD = \
 	libsystemd-logs.la \
@@ -2706,7 +2707,7 @@ libsystemd_proxy_la_SOURCES = \
 	src/bus-proxyd/synthesize.c \
 	src/bus-proxyd/synthesize.h \
 	src/bus-proxyd/cynara.c \
-	src/bus-proxyd/cynara.h 	
+	src/bus-proxyd/cynara.h
 
 libsystemd_proxy_la_CFLAGS = \
 	$(AM_CFLAGS) \

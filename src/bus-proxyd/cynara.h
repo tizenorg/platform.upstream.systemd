@@ -5,7 +5,8 @@
 /***
   This file is part of systemd.
 
-  Copyright 2013 Lennart Poettering
+  Copyright (c) 2015 Samsung Electronics, Ltd.
+  Kazimierz Krosman <k.krosman@samsung.com>
 
   systemd is free software; you can redistribute it and/or modify it
   under the terms of the GNU Lesser General Public License as published by
@@ -26,9 +27,9 @@
 
 
 typedef struct PolicyDeferredMessage PolicyDeferredMessage;
-typedef struct PolicyMessageCheckHistory PolicyMessageCheckHistory; 
+typedef struct PolicyMessageCheckHistory PolicyMessageCheckHistory;
 typedef struct ProxyContext ProxyContext;
-typedef struct PolicyDeferredMessageId PolicyDeferredMessageId;  
+typedef struct PolicyDeferredMessageId PolicyDeferredMessageId;
 
 typedef enum CynaraPolicyResult {
         CYNARA_RESULT_ALLOW,
@@ -41,7 +42,7 @@ struct PolicyDeferredMessage {
         PolicyCheckResult result;
         PolicyDeferredMessageType type;
         char is_repeat_policy_check_needed:1;
-        
+
         /** fields filled by bus-policy layer*/
         PolicyItemClass class;
         uid_t uid;
@@ -66,10 +67,10 @@ struct PolicyDeferredMessage {
         LIST_FIELDS(PolicyDeferredMessage, items);
 };
 
-struct PolicyMessageCheckHistory { 
-        sd_bus_message *message; 
+struct PolicyMessageCheckHistory {
+        sd_bus_message *message;
         PolicyCheckResult result;
-	int proxy_state;
+        int proxy_state;
         bool is_repeat_policy_check_needed;
         LIST_HEAD(PolicyDeferredMessage, history);
         pthread_rwlock_t history_lock;
@@ -79,7 +80,7 @@ struct PolicyMessageCheckHistory {
 
 int cynara_deferred_message_new(PolicyDeferredMessage **d, PolicyCheckResult result);
 PolicyDeferredMessage* cynara_deferred_message_free(PolicyDeferredMessage *d);
-void cynara_deferred_message_list_free(PolicyDeferredMessage *d); 
+void cynara_deferred_message_list_free(PolicyDeferredMessage *d);
 int cynara_deferred_message_new_append(PolicyDeferredMessage **d, PolicyCheckResult result, PolicyDeferredMessage **list);
 PolicyDeferredMessage* cynara_deferred_message_append(PolicyDeferredMessage *d,PolicyDeferredMessage *a);
 
@@ -89,9 +90,8 @@ int cynara_message_check_history_new(PolicyMessageCheckHistory  **d, sd_bus_mess
 PolicyMessageCheckHistory* cynara_message_check_history_free(PolicyMessageCheckHistory *dh, BusCynara *cynara);
 
 
-
 PolicyMessageCheckHistory* cynara_deferred_check_history_acquire(PolicyMessageCheckHistory *d, bool only_for_read);
-void cynara_deferred_check_history_release(PolicyMessageCheckHistory *d); 
+void cynara_deferred_check_history_release(PolicyMessageCheckHistory *d);
 
 int bus_cynara_new(BusCynara **bus_cynara);
 BusCynara* bus_cynara_free(BusCynara *bus_cynara);
@@ -107,9 +107,9 @@ DEFINE_TRIVIAL_CLEANUP_FUNC(BusCynara*, bus_cynara_free);
 DEFINE_TRIVIAL_CLEANUP_FUNC(BusCynara*, cynara_bus_unref);
 
 
-CynaraPolicyResult cynara_check_privilege(BusCynara *cynara, PolicyItem *item, const PolicyCheckFilter *filter, PolicyDeferredMessage **deferred_message); 
+CynaraPolicyResult cynara_check_privilege(BusCynara *cynara, PolicyItem *item, const PolicyCheckFilter *filter, PolicyDeferredMessage **deferred_message);
 
-int cynara_check_request_generate(BusCynara *cynara, int wakeup_fd, PolicyDeferredMessage *deferred_message, sd_bus_message *message, PolicyMessageCheckHistory **out); 
+int cynara_check_request_generate(BusCynara *cynara, int wakeup_fd, PolicyDeferredMessage *deferred_message, sd_bus_message *message, PolicyMessageCheckHistory **out);
 int cynara_message_check_history_replace(PolicyMessageCheckHistory *dh, PolicyDeferredMessage *history, BusCynara* cynara);
 
 int cynara_run_process(BusCynara *cynara);

@@ -7,6 +7,8 @@
   Copyright 2013 Daniel Mack
   Copyright 2014 Kay Sievers
   Copyright 2015 David Herrmann
+  Copyright (c) 2015 Samsung Electronics, Ltd.
+  Kazimierz Krosman <k.krosman@samsung.com>
 
   systemd is free software; you can redistribute it and/or modify it
   under the terms of the GNU Lesser General Public License as published by
@@ -96,16 +98,16 @@ static int cynara_process_wakeup(int fd, struct pollfd* pollfd) {
         if (pollfd->revents & POLLIN) {
                 int r;
                 char dummy_buffer[32];
-                
-                log_debug("Cynara woke up by block fd=%d).",fd);
 
+                log_debug("Cynara woke up.");
                 while ((r = read(fd, dummy_buffer, 32)) > 0);
                 if (r < 0 && r != -1)
                         return r;
+
                 return 1;
-        } else {
+        } else
                 log_debug("Cynara woke up by cynara daemon.");
-        }
+
         return 0;
 }
 static void* cynara_client(void* a) {
@@ -123,17 +125,15 @@ static void* cynara_client(void* a) {
                 { .fd = block_fd,     .events = POLLIN,      },
                 { .fd = fd,           .events = events & POLLIN,     },
                 { .fd = fd,           .events = events & POLLOUT,    },
-       }; 
-
+        };
 
         log_debug("Started Cynara thread.");
         for(;;) {
                 fd = cynara_bus_get_fd(cynara);
-                if (fd < 0) {
+                if (fd < 0)
                         fd_num = 1;
-                } else {
+                else {
                         fd_num = 3;
-                        
                         events = cynara_bus_get_events(cynara);
                         pollfd[1].fd = fd;
                         pollfd[1].events = events & POLLIN;
@@ -147,12 +147,11 @@ static void* cynara_client(void* a) {
                 {
                         r = cynara_run_process(cynara);
                         if (r < 0) {
-                                log_error("Cynara lib error closing task.");
+                                log_error("Cynara lib error: closing task.");
                                 break;
                         }
                 } else
                         log_error("ppol error cynara: %d %d.", fd, r);
-                
         }
         log_debug("Exiting Cynara Thread.");
         return 0;
@@ -218,7 +217,7 @@ static int loop_clients(int accept_fd, uid_t bus_uid) {
          r = pthread_create(&tid, &attr, cynara_client, cynara);
          if (r < 0) {
                 log_error("Cannot spawn cynara thread: %m");
-                goto finish;        
+                goto finish;
         }
 
         for (;;) {
@@ -258,8 +257,6 @@ finish:
         pthread_attr_destroy(&attr);
         return r;
 }
-
-
 
 static int help(void) {
 
@@ -376,7 +373,6 @@ int main(int argc, char *argv[]) {
         log_parse_environment();
         log_open();
 
-log_set_max_level(7);
         bus_uid = getuid();
         if (geteuid() == 0) {
                 const char *user = "systemd-bus-proxy";

@@ -85,7 +85,6 @@ int bus_proxy_process_driver(sd_bus *a, sd_bus *b, sd_bus_message *m, SharedPoli
         assert(b);
         assert(m);
 
-
         if (!a->is_kernel)
                 return 0;
 

@@ -7,6 +7,8 @@
   Copyright 2013 Daniel Mack
   Copyright 2014 Kay Sievers
   Copyright 2014 David Herrmann
+  Copyright (c) 2015 Samsung Electronics, Ltd.
+  Kazimierz Krosman <k.krosman@samsung.com>
 
   systemd is free software; you can redistribute it and/or modify it
   under the terms of the GNU Lesser General Public License as published by
@@ -54,14 +56,13 @@
 #include "synthesize.h"
 #include "cynara.h"
 
-
 struct ProxyContext {
         BusCynara *cynara;
         LIST_HEAD(PolicyMessageCheckHistory, local_to_dest_q);
-        LIST_HEAD(PolicyMessageCheckHistory, dest_to_local_q); 
-        int wakeup_fd; // fd[1], write
-        int block_fd; //fd[0], ppoll, read
-}; 
+        LIST_HEAD(PolicyMessageCheckHistory, dest_to_local_q);
+        int wakeup_fd;
+        int block_fd;
+};
 enum {
         PROXY_DIR_LOCAL_TO_DEST = 0,
         PROXY_DIR_DEST_TO_LOCAL
@@ -80,9 +81,9 @@ int proxy_context_new(ProxyContext **pc, BusCynara *bus_cynara) {
         int r;
 
         p = new0(ProxyContext, 1);
-        if (!p) 
+        if (!p)
                 return log_oom();
-        p->wakeup_fd = p->block_fd = -1;        
+        p->wakeup_fd = p->block_fd = -1;
         r = pipe(fds);
         if (r < 0)
                 return r;
@@ -96,7 +97,7 @@ int proxy_context_new(ProxyContext **pc, BusCynara *bus_cynara) {
         r = fd_nonblock(p->block_fd, true);
         if (r < 0)
                 return r;
-        
+
         p->cynara = cynara_bus_ref(bus_cynara);
         *pc = p;
         p = NULL;
@@ -104,13 +105,12 @@ int proxy_context_new(ProxyContext **pc, BusCynara *bus_cynara) {
 }
 
 ProxyContext* proxy_context_free(ProxyContext *pc) {
-        
         if (!pc)
                 return NULL;
 
         cynara_message_check_history_free(pc->local_to_dest_q, pc->cynara);
         cynara_message_check_history_free(pc->dest_to_local_q, pc->cynara);
-        cynara_bus_unref(pc->cynara); 
+        cynara_bus_unref(pc->cynara);
         close(pc->wakeup_fd);
         close(pc->block_fd);
         free(pc);
@@ -138,7 +138,7 @@ static int proxy_context_add_message(Proxy *p, PolicyMessageCheckHistory **q, sd
         assert(p);
         assert(q);
         assert(m);
-        
+
         r = cynara_message_check_history_new(&dh, m, POLICY_RESULT_ALLOW, NULL);
         if (r < 0)
                 return r;
@@ -331,7 +331,7 @@ int proxy_new(Proxy **out, int in_fd, int out_fd,BusCynara *cynara, const char *
         r = proxy_prepare_matches(p);
         if (r < 0)
                 return r;
-        
+
         r = proxy_context_new(&(p->proxy_context), cynara);
         if (r < 0) {
                 log_error("Cannot create ProxyContext");
@@ -408,7 +408,7 @@ int proxy_set_policy(Proxy *p, SharedPolicy *sp, char **configuration) {
 
 int proxy_hello_policy(Proxy *p, uid_t original_uid) {
         Policy *policy;
-	ProxyContext *context;
+        ProxyContext *context;
         PolicyMessageCheckHistory *history;
         int r = 0;
         PolicyCheckResult policy_result = POLICY_RESULT_DENY;
@@ -416,7 +416,7 @@ int proxy_hello_policy(Proxy *p, uid_t original_uid) {
         char *label = NULL;
 
         assert(p);
-	context = p->proxy_context;
+        context = p->proxy_context;
         label = p->destination_bus->fake_label;
 
         if (!p->policy)
@@ -434,13 +434,13 @@ int proxy_hello_policy(Proxy *p, uid_t original_uid) {
                 if (r < 0) {
                         r = log_error_errno(EPERM, "Policy denied connection (Cynara check error).");
                         goto hello_exit;
-                } else 
+                } else
                         r = 0;
 
-                policy_result = policy_check_from_deferred(history, true); 
+                policy_result = policy_check_from_deferred(history, true);
                 if(policy_result != POLICY_RESULT_ALLOW)
                         r = log_error_errno(EPERM, "Policy denied connection.");
-                
+
                 log_debug("Permitting access due to cynara answer.");
         } else
                 r = log_error_errno(EPERM, "Policy denied connection.");
@@ -473,11 +473,11 @@ static int proxy_wait(Proxy *p) {
         struct timespec _ts, *ts;
         struct pollfd *pollfd;
         int r;
+
         assert(p);
         assert(p->proxy_context);
-        
+
         fd_block = p->proxy_context->block_fd;
-        
         fd = sd_bus_get_fd(p->destination_bus);
         if (fd < 0)
                 return log_error_errno(fd, "Failed to get fd: %m");
@@ -521,7 +521,7 @@ static int proxy_wait(Proxy *p) {
                 { .fd = p->local_in,  .events = events_local & POLLIN,  },
                 { .fd = p->local_out, .events = events_local & POLLOUT, },
                 { .fd = fd_block,     .events = POLLIN, },
-        }; 
+        };
 
         r = ppoll(pollfd, 4, ts, NULL);
         if (r < 0)
@@ -529,7 +529,7 @@ static int proxy_wait(Proxy *p) {
 
         r = proxy_process_wakeup(p, &(pollfd[3]));
         if (r < 0)
-                return log_error_errno(r, "pipe fd error: %m");        
+                return log_error_errno(r, "pipe fd error: %m");
 
         return 0;
 }
@@ -552,7 +552,7 @@ static int process_policy_unlocked(sd_bus *from, sd_bus *to, sd_bus_message *m, 
         int r;
 
         const char *sender_label = NULL;
-        const char *recv_label = NULL; 
+        const char *recv_label = NULL;
         PolicyCheckResult r_send = POLICY_RESULT_DENY, r_recv = POLICY_RESULT_DENY;
 
         assert(from);
@@ -595,7 +595,7 @@ static int process_policy_unlocked(sd_bus *from, sd_bus *to, sd_bus_message *m, 
 
                 (void) sd_bus_creds_get_euid(&m->creds, &sender_uid);
                 (void) sd_bus_creds_get_egid(&m->creds, &sender_gid);
-                (void) sd_bus_creds_get_selinux_context(&m->creds, &sender_label); 
+                (void) sd_bus_creds_get_selinux_context(&m->creds, &sender_label);
 
                 if (sender_uid == UID_INVALID || sender_gid == GID_INVALID || !sender_label || !(*sender_label)) {
 
@@ -622,7 +622,7 @@ static int process_policy_unlocked(sd_bus *from, sd_bus *to, sd_bus_message *m, 
 
                 if(r_send == r_recv && r_send == POLICY_RESULT_ALLOW)
                         return POLICY_OK;
-                else if (r_send == POLICY_RESULT_LATER || r_recv == POLICY_RESULT_LATER) 
+                else if (r_send == POLICY_RESULT_LATER || r_recv == POLICY_RESULT_LATER)
                         return POLICY_LATER;
 
                 /* Return an error back to the caller */
@@ -663,7 +663,7 @@ static int process_policy_unlocked(sd_bus *from, sd_bus *to, sd_bus_message *m, 
 
                         (void) sd_bus_creds_get_euid(destination_creds, &destination_uid);
                         (void) sd_bus_creds_get_egid(destination_creds, &destination_gid);
-                        (void) sd_bus_creds_get_selinux_context(destination_creds, &recv_label); 
+                        (void) sd_bus_creds_get_selinux_context(destination_creds, &recv_label);
                 }
                 sender_label = to->fake_label;
 
@@ -703,7 +703,6 @@ static int process_policy_unlocked(sd_bus *from, sd_bus *to, sd_bus_message *m, 
                                         return POLICY_OK;
                                 else if (r_recv == POLICY_RESULT_LATER)
                                         return POLICY_LATER;
-                                
                         }
                 } else if (r_send == POLICY_RESULT_LATER) {
                         (*deferred)->is_repeat_policy_check_needed = 1;
@@ -888,16 +887,16 @@ static int proxy_process_destination_to_local(Proxy *p) {
                 if (r < 0)
                         return log_error_errno(r, "Failed to process policy: %m");
                 if (r == POLICY_LATER) {
-			PolicyMessageCheckHistory *h = NULL;
+                        PolicyMessageCheckHistory *h = NULL;
                         r = cynara_check_request_generate(p->proxy_context->cynara, wakeup_fd, deferred_message, m, &h);
                         if (r < 0)
                                 return r;
 
-                        h->proxy_state = PROXY_STATE_DRIVER; 
+                        h->proxy_state = PROXY_STATE_DRIVER;
                         r = proxy_context_add_history(p, h, &(p->proxy_context->dest_to_local_q));
-                        if (r < 0) 
-                                return r;        
-				
+                        if (r < 0)
+                                return r;
+
                         return 0;
                 } else if (r > 0) {
                         log_debug("Message drop because of process policy result(%s->%s: %s).", m->sender, m->destination, m->path);
@@ -948,8 +947,9 @@ static int proxy_process_local_to_destination(Proxy *p) {
         int wakeup_fd;
         PolicyDeferredMessage *deferred_message = NULL;
         _cleanup_bus_message_unref_ sd_bus_message *m = NULL;
+
         assert(p);
-        
+
         wakeup_fd = p->proxy_context->wakeup_fd;
         deferred_message = NULL;
         r = sd_bus_process(p->local_bus, &m);
@@ -987,13 +987,13 @@ static int proxy_process_local_to_destination(Proxy *p) {
                 if (r < 0)
                         return r;
 
-                h->proxy_state = PROXY_STATE_DRIVER; 
+                h->proxy_state = PROXY_STATE_DRIVER;
                 h->is_repeat_policy_check_needed = true;
                 r = proxy_context_add_history(p, h, &(p->proxy_context->local_to_dest_q));
-		if (r < 0)
-			return r;
+                if (r < 0)
+                        return r;
 
-		return 0;
+                return 0;
         }
 
         for (;;) {
@@ -1009,11 +1009,12 @@ static int proxy_process_local_to_destination(Proxy *p) {
                                 if (r < 0)
                                         return r;
 
-                                h->proxy_state = PROXY_STATE_POLICY; 
+                                h->proxy_state = PROXY_STATE_POLICY;
                                 r = proxy_context_add_history(p, h, &(p->proxy_context->local_to_dest_q));
-                                if (r < 0) 
-                                        return r;        
-				return 0;
+                                if (r < 0)
+                                        return r;
+
+                                return 0;
                         } else if (r > 0) {
                                 log_debug("Message drop because of process policy result(%s->%s: %s).",m->sender, m->destination, m->path);
                                 return 1;
@@ -1053,7 +1054,6 @@ static int proxy_process_local_to_destination(Proxy *p) {
 }
 
 static const char* proxy_dir_to_string(int direction) {
-        
         switch (direction) {
         case PROXY_DIR_LOCAL_TO_DEST:
                 return "LOCAL_TO_DEST";
@@ -1070,7 +1070,7 @@ static int proxy_process_queue(Proxy *p, int direction) {
         sd_bus *to;
         PolicyDeferredMessage *deferred_message = NULL;
         BusCynara *cynara;
-        PolicyCheckResult result;        
+        PolicyCheckResult result;
         int r;
 
         cynara = p->proxy_context->cynara;
@@ -1082,8 +1082,9 @@ static int proxy_process_queue(Proxy *p, int direction) {
                 to = p->local_bus;
                 from = p->destination_bus;
                 q = &(p->proxy_context->dest_to_local_q);
-        } else 
+        } else
                 return -1;
+
         while ((i = *q)) {
                 bool allow = false;
                 result = policy_check_from_deferred(i, false);
@@ -1122,9 +1123,8 @@ static int proxy_process_queue(Proxy *p, int direction) {
                                                         return log_error_errno(r, "Proxy queue: Cynara deferred replace error: %m");
                                                 break;
                                         }
-                                
                                 }
-                        } else 
+                        } else
                                 allow = true;
                 } else if (result == POLICY_RESULT_DENY) {
                         /* Return an error back to the caller */
@@ -1133,7 +1133,7 @@ static int proxy_process_queue(Proxy *p, int direction) {
 
 
                 }
-                
+
                 if (allow) {
                         r = sd_bus_send(to, i->message, NULL);
                         if (r < 0) {
@@ -1149,7 +1149,6 @@ static int proxy_process_queue(Proxy *p, int direction) {
                                  p->local_creds.uid, p->local_creds.gid, bus_message_type_to_string(m->header->type),
                                  strna(m->destination), strna(m->path), strna(m->interface), strna(m->member));
                                 }
-                
                         }
                 }
                 LIST_REMOVE(items, *q, i);
@@ -1202,12 +1201,4 @@ int proxy_run(Proxy *p) {
         }
 
         return 0;
-}
-
-sd_bus_message* proxy_dispatch_message_to_dest(Proxy *p, sd_bus_message *m, PolicyDeferredMessage *deferred) {
-        return NULL;
-}
-
-sd_bus_message* proxy_dispatch_message_to_local(Proxy *p, sd_bus_message *m, PolicyDeferredMessage *deferred) {
-        return NULL;
 }

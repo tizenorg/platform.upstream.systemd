@@ -3,7 +3,8 @@
 /***
   This file is part of systemd.
 
-  Copyright 2013 Lennart Poettering
+  Copyright (c) 2015 Samsung Electronics, Ltd.
+  Kazimierz Krosman <k.krosman@samsung.com>
 
   systemd is free software; you can redistribute it and/or modify it
   under the terms of the GNU Lesser General Public License as published by
@@ -76,7 +77,7 @@ static void cynara_wakeup(BusCynara *cynara) {
         char dummy_byte;
         int r;
 
-        assert(cynara);        
+        assert(cynara);
 
         r = write(cynara->wakeup_fd, &dummy_byte, 1);
         if (r < 0)
@@ -87,7 +88,7 @@ static BusCynara* cynara_bus_acquire(BusCynara *cynara) {
         int r;
         r = pthread_mutex_lock(&cynara->lock);
         assert(!r);
-        return cynara;        
+        return cynara;
 }
 
 static void cynara_bus_release(BusCynara *cynara) {
@@ -98,13 +99,13 @@ static void cynara_bus_release(BusCynara *cynara) {
 
 PolicyMessageCheckHistory* cynara_deferred_check_history_acquire(PolicyMessageCheckHistory *d, bool only_for_read) {
         int r;
-        
-        if (only_for_read) 
-                r = pthread_rwlock_rdlock(&d->history_lock); 
+
+        if (only_for_read)
+                r = pthread_rwlock_rdlock(&d->history_lock);
         else
                 r = pthread_rwlock_wrlock(&d->history_lock);
-        assert(!r);  
-        return d;        
+        assert(!r);
+        return d;
 }
 
 void cynara_deferred_check_history_release(PolicyMessageCheckHistory *d) {
@@ -121,13 +122,13 @@ int cynara_deferred_message_new(PolicyDeferredMessage **d, PolicyCheckResult res
 
         if (!dm)
                 return log_oom();
-        
-        dm->id = new0(PolicyDeferredMessageId,1);        
+
+        dm->id = new0(PolicyDeferredMessageId, 1);
         if (!(dm->id)) {
                 free(dm);
                 return log_oom();
         }
-        
+
         dm->result = result;
         *d = dm;
         return 1;
@@ -140,13 +141,11 @@ int cynara_deferred_message_new_append(PolicyDeferredMessage **d,
         int r;
 
         dm = NULL;
-        r = cynara_deferred_message_new(&dm, result); 
-
-        if (r <= 0) 
+        r = cynara_deferred_message_new(&dm, result);
+        if (r <= 0)
                 return r;
-        
-        LIST_APPEND(items, *list, dm);
 
+        LIST_APPEND(items, *list, dm);
         return 1;
 }
 
@@ -198,23 +197,21 @@ int cynara_message_check_history_new(PolicyMessageCheckHistory  **d, sd_bus_mess
 
         assert(d);
         dh = new0(PolicyMessageCheckHistory, 1);
-        if (!dh) 
+        if (!dh)
                 return log_oom();
-        
-
 
         r = pthread_rwlock_init(&dh->history_lock, NULL);
         if (r < 0) {
                 log_error_errno(r, "Cannot initialize deferred message history rwlock: %m");
-                free(dh); 
+                free(dh);
                 return r;
         }
 
         if (message)
-                dh->message = sd_bus_message_ref(message);   
+                dh->message = sd_bus_message_ref(message);
 
         dh->history = history;
-        dh->result = result; 
+        dh->result = result;
         *d = dh;
         return 1;
 }
@@ -224,7 +221,7 @@ PolicyMessageCheckHistory* cynara_message_check_history_free(PolicyMessageCheckH
 
         if (!dh)
                 return NULL;
-        
+
         while ((i = dh->history)) {
                 if (i->result == POLICY_RESULT_LATER) {
 #ifdef ENABLE_CYNARA
@@ -234,7 +231,7 @@ PolicyMessageCheckHistory* cynara_message_check_history_free(PolicyMessageCheckH
                                 cynara_wakeup(cynara);
                         }
                         //here wlocks is not necessary.
-                        //reason: cynara mutex guards against using freed structure 
+                        //reason: cynara mutex protects against using freed structure
                         LIST_REMOVE(items, dh->history, i);
                         cynara_deferred_message_free(i);
                         cynara_bus_release(cynara);
@@ -242,9 +239,9 @@ PolicyMessageCheckHistory* cynara_message_check_history_free(PolicyMessageCheckH
                 } else {
                         LIST_REMOVE(items, dh->history, i);
                         cynara_deferred_message_free(i);
-                } 
+                }
         }
-        
+
         sd_bus_message_unref(dh->message);
         pthread_rwlock_destroy(&dh->history_lock);
         free(dh);
@@ -280,11 +277,11 @@ static int cynara_check_request_generate_internal(BusCynara *cynara, int wakeup_
                 if (dh->history) {
                         wakeup_fd = dh->history->wakeup_fd;
                         while ((i = dh->history)) {
-                                if (i->result == POLICY_RESULT_LATER) { 
+                                if (i->result == POLICY_RESULT_LATER) {
                                         cynara_async_cancel_request(cynara->cynara, i->id->p_check_id);
                                         cynara_wakeup(cynara);
                                 }
-                        
+
                                 LIST_REMOVE(items, dh->history, i);
                                 cynara_deferred_message_free(i);
                         }
@@ -298,8 +295,8 @@ static int cynara_check_request_generate_internal(BusCynara *cynara, int wakeup_
         }
 
         /* generating new cynara requests and update wakeup_fd*/
-	LIST_FOREACH(items, i, deferred_message) {
-		i->wakeup_fd = wakeup_fd;
+        LIST_FOREACH(items, i, deferred_message) {
+                i->wakeup_fd = wakeup_fd;
                 i->guard = dh;
                 if (!is_repeat_policy && i->is_repeat_policy_check_needed)
                         is_repeat_policy = true;
@@ -315,7 +312,7 @@ static int cynara_check_request_generate_internal(BusCynara *cynara, int wakeup_
                 cynara_wakeup(cynara);
                 log_debug("Cynara: created request (%s:%s:%s:%s).", i->label, session_id, user, i->privilege);
                 requested_count++;
-	}
+        }
         cynara_bus_release(cynara);
 
         if (replace && dh) {
@@ -323,12 +320,11 @@ static int cynara_check_request_generate_internal(BusCynara *cynara, int wakeup_
                 dh->result = POLICY_RESULT_LATER;
                 dh->is_repeat_policy_check_needed = is_repeat_policy;
         } else {
-                
                 dh->is_repeat_policy_check_needed = is_repeat_policy;
                 *out = dh;
                 dh = NULL;
         }
-        
+
         return 1;
 #endif
 }
@@ -345,10 +341,10 @@ int bus_cynara_new(BusCynara **bus_cynara) {
         int r;
         int fds[2];
         BusCynara *cynara;
-        
+
         cynara = new0(BusCynara, 1);
         if (!cynara)
-                return log_oom(); 
+                return log_oom();
 
         cynara->fd = -1;
         cynara->events = POLLIN|POLLOUT;
@@ -364,7 +360,6 @@ int bus_cynara_new(BusCynara **bus_cynara) {
 
         r = fd_nonblock(cynara->wakeup_fd, true);
         if (r < 0) {
-                
                 bus_cynara_free(cynara);
                 return r;
         }
@@ -381,8 +376,7 @@ int bus_cynara_new(BusCynara **bus_cynara) {
                 bus_cynara_free(cynara);
                 log_error("Cannot connect to cynara daemon.");
                 return -EAGAIN;
-        }         
-        
+        }
 #endif
 
         cynara->pid = getpid();
@@ -391,11 +385,10 @@ int bus_cynara_new(BusCynara **bus_cynara) {
         return 1;
 }
 
-BusCynara* bus_cynara_free(BusCynara *bus_cynara) {        
+BusCynara* bus_cynara_free(BusCynara *bus_cynara) {
         if (!bus_cynara)
                 return NULL;
-     
-#ifdef ENABLE_CYNARA           
+#ifdef ENABLE_CYNARA
         close(bus_cynara->wakeup_fd);
         close(bus_cynara->block_fd);
         if (bus_cynara->cynara)
@@ -412,7 +405,7 @@ BusCynara* cynara_bus_unref(BusCynara *cynara) {
         BusCynara* c;
         if (!cynara)
                 return NULL;
-        
+
         c = cynara_bus_acquire(cynara);
         assert(c->ref_count > 0);
         --(c->ref_count);
@@ -459,7 +452,7 @@ int cynara_bus_get_block_fd(BusCynara *cynara) {
 
 
 static void cynara_fill_deferred_message(PolicyDeferredMessage* dm,
-                                PolicyItem *item, 
+                                PolicyItem *item,
                                 const PolicyCheckFilter *filter) {
         assert(dm);
         assert(item);
@@ -508,9 +501,9 @@ static void cynara_fill_deferred_message(PolicyDeferredMessage* dm,
                 dm->member = strdup(filter->member);
 }
 
-CynaraPolicyResult cynara_check_privilege(BusCynara *cynara, 
-                                PolicyItem *item, 
-                                const PolicyCheckFilter *filter, 
+CynaraPolicyResult cynara_check_privilege(BusCynara *cynara,
+                                PolicyItem *item,
+                                const PolicyCheckFilter *filter,
                                 PolicyDeferredMessage **deferred_message) {
 #ifdef ENABLE_CYNARA
         PolicyDeferredMessage *dm = NULL;
@@ -541,12 +534,14 @@ CynaraPolicyResult cynara_check_privilege(BusCynara *cynara,
                                 log_error("Cynara: cannot create deferred message.");
                                 return CYNARA_RESULT_ERROR;
                         }
+
                         cynara_fill_deferred_message(dm, item, filter);
                         *deferred_message = dm;
                 }
                 return POLICY_RESULT_LATER;
         break;
         }
+
         log_debug("Cynara: rule exists in cache (%s:%s:%s:%s). DENY", filter->label, session_id, user, item->privilege);
         return CYNARA_RESULT_DENY;
 #else
@@ -561,6 +556,7 @@ int cynara_check_request_generate(BusCynara *cynara, int wakeup_fd, PolicyDeferr
                 cynara_message_check_history_free(*out, cynara);
         return r;
 }
+
 #ifdef ENABLE_CYNARA
 static void status_callback(int old_fd,
                             int new_fd,
@@ -571,16 +567,16 @@ static void status_callback(int old_fd,
         cynara = user_status_data;
         log_debug("Cynara status callback: old_fd=%d new_fd=%d status=%d.", old_fd, new_fd, (int)status);
         if (new_fd != -1 && new_fd!=old_fd) {
-                cynara->fd = new_fd;        
+                cynara->fd = new_fd;
                 switch (status) {
                 case CYNARA_STATUS_FOR_READ:
                         cynara->events = POLLIN;
                 break;
                 case CYNARA_STATUS_FOR_RW:
-                        cynara->events = POLLIN|POLLOUT; 
+                        cynara->events = POLLIN|POLLOUT;
                 break;
                 default:
-                        log_debug("Cynara passed unknown status value: 0x%08X\n", (unsigned int)status); 
+                        log_debug("Cynara passed unknown status value: 0x%08X\n", (unsigned int)status);
                 }
         }
 
@@ -627,7 +623,7 @@ PolicyCheckResult cynara_wait_for_answer(PolicyDeferredMessage *message) {
         (unsigned int)message->id->p_check_id, message->label, (long unsigned int)message->uid, message->privilege);
 
         pthread_cond_wait(message->condition, message->mutex);
-        
+
 finish:
         log_debug("Cynara: client gets(unblocked) answer: check_id=%u, request=(%s, %lu, %s).",
         (unsigned int)message->id->p_check_id, message->label, (long unsigned int)message->uid, message->privilege);
@@ -641,9 +637,9 @@ int cynara_run_process(BusCynara *cynara) {
         int r;
 #ifdef ENABLE_CYNARA
         cynara_bus_acquire(cynara);
-        r = cynara_async_process(cynara->cynara); 
+        r = cynara_async_process(cynara->cynara);
         cynara_bus_release(cynara);
-        
+
         if (r != CYNARA_API_SUCCESS) {
                 log_error("Cynara async process error: %u", r);
                 return -EAGAIN;
@@ -654,10 +650,11 @@ int cynara_run_process(BusCynara *cynara) {
 #ifdef ENABLE_CYNARA
 static void cynara_response_received(PolicyCheckResult result, PolicyDeferredMessage *deferred_message) {
         char dummy_byte;
-        int r;        
+        int r;
+
         cynara_deferred_check_history_acquire(deferred_message->guard, false);
         deferred_message->result = result;
-        if (deferred_message->mutex) { 
+        if (deferred_message->mutex) {
                 //wakeup blocked thread by signaling
                 log_debug("Cynara received message- waking up client thread by mutex: check_id=%u, request=(%s, %lu, %s).",
                 (unsigned int)deferred_message->id->p_check_id, deferred_message->label, (long unsigned int)deferred_message->uid, deferred_message->privilege);
@@ -669,7 +666,7 @@ static void cynara_response_received(PolicyCheckResult result, PolicyDeferredMes
                 log_debug("Cynara received message- wake up client thread by pipe: check_id=%u, request=(%s, %lu, %s).",
                 (unsigned int)deferred_message->id->p_check_id, deferred_message->label, (long unsigned int)deferred_message->uid, deferred_message->privilege);
                 r = write(deferred_message->wakeup_fd, &dummy_byte, 1);
-                log_debug("cynara rest value: %d %d.",r, deferred_message->wakeup_fd);  
+                log_debug("cynara rest value: %d %d.",r, deferred_message->wakeup_fd);
                 assert(r >= 0);
         }
         cynara_deferred_check_history_release(deferred_message->guard);

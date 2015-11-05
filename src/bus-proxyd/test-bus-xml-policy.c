@@ -178,42 +178,34 @@ int main(int argc, char *argv[]) {
 
         policy_free(&p);
 
-	printf("\"check\" tests BEGIN\n");
-	/* simple check tests */
+        printf("\"check\" tests BEGIN\n");
+        /* simple check tests */
 
-	assert_se(test_policy_load(&p, "check1.conf") >= 0);
-	policy_dump(&p);
-	
-	policy_free(&p);
+        assert_se(test_policy_load(&p, "check1.conf") >= 0);
+        policy_dump(&p);
 
-	printf("\"check\" tests: check1.conf OK\n");
+        policy_free(&p);
 
+        printf("\"check\" tests: check1.conf OK\n");
 
-	/* check tags containing errors */
+        /* check tags containing errors */
+        assert_se(test_policy_load(&p, "checks-error-1.conf") < 0);
+        policy_free(&p);
 
-	assert_se(test_policy_load(&p, "checks-error-1.conf") < 0);
-	policy_free(&p);
+        assert_se(test_policy_load(&p, "checks-error-2.conf") < 0);
+        policy_free(&p);
 
-	assert_se(test_policy_load(&p, "checks-error-2.conf") < 0);
-	policy_free(&p);
+        printf("\"check\" tests: checks-errors-x.conf OK\n");
 
-	printf("\"check\" tests: checks-errors-x.conf OK\n");
-	
+        /* parsing file checks2.conf test */
+        assert_se(test_policy_load(&p, "checks2.conf") >= 0);
+        policy_dump(&p);
 
-	/* parsing file checks2.conf test */
+        policy_free(&p);
 
-	assert_se(test_policy_load(&p, "checks2.conf") >= 0);
-	policy_dump(&p);
-	
-	
+        printf("\"check\" tests: checks2.conf OK\n");
 
-	policy_free(&p);
-	
-	printf("\"check\" tests: checks2.conf OK\n");
-
- 
-	printf("\"check\" tests END\n");
-
+        printf("\"check\" tests END\n");
 
         return EXIT_SUCCESS;
 }

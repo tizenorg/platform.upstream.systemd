@@ -712,6 +712,18 @@ fi
 
 AM_CONDITIONAL([HAVE_SMACK], [test "x$have_smack" = "xyes"])
 
+#-------------------------------------------------------------------------------
+#enable cynara integration
+AC_ARG_ENABLE([cynara], [AS_HELP_STRING([--enable-cynara], [enable Cynara integration])], [], [enable_cynara=no])
+if test "x$enable_cynara" = xyes; then
+  PKG_CHECK_MODULES([CYNARA], [cynara-client-async >= 0.4.2 cynara-session >= 0.4.2],
+     [AC_DEFINE([ENABLE_CYNARA], [1], [Define to enable Cynara privilege checks in systemd-bus-proxyd deamon])],
+     [AC_MSG_ERROR([libcynara-client-async and cynara-session are required to enable Cynara integration])])
+fi
+
+AC_SUBST([CYNARA_CFLAGS])
+AC_SUBST([CYNARA_LIBS])
+
 # ------------------------------------------------------------------------------
 AC_ARG_ENABLE([gcrypt],
         AS_HELP_STRING([--disable-gcrypt],[Disable optional GCRYPT support]),

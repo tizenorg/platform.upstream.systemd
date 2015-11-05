@@ -6,6 +6,8 @@
   This file is part of systemd.
 
   Copyright 2013 Lennart Poettering
+  Copyright (c) 2015 Samsung Electronics, Ltd.
+  Kazimierz Krosman <k.krosman@samsung.com>
 
   systemd is free software; you can redistribute it and/or modify it
   under the terms of the GNU Lesser General Public License as published by
@@ -40,16 +42,16 @@ int policy_load(Policy *p, char **files);
 void policy_free(Policy *p);
 
 PolicyCheckResult policy_check_own(Policy *p,
-                        uid_t uid, 
-                        gid_t gid, 
+                        uid_t uid,
+                        gid_t gid,
                         const char *name,
                         const char *label,
                         ProxyContext *proxy_context,
                         PolicyDeferredMessage **deferred);
 
 PolicyCheckResult policy_check_hello(Policy *p,
-                        uid_t uid, 
-                        gid_t gid, 
+                        uid_t uid,
+                        gid_t gid,
                         const char *label,
                         ProxyContext *proxy_context,
                         PolicyDeferredMessage **deferred);
@@ -76,7 +78,7 @@ PolicyCheckResult policy_check_recv(Policy *p,
                        const char *path,
                        const char *interface,
                        const char *member,
-		       const char *label,
+                       const char *label,
                        bool dbus_to_kernel,
                        ProxyContext *proxy_context,
                        PolicyDeferredMessage **deferred);

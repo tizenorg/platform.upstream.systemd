@@ -6,6 +6,8 @@
   This file is part of systemd.
 
   Copyright 2014 David Herrmann
+  Copyright (c) 2015 Samsung Electronics, Ltd.
+  Kazimierz Krosman <k.krosman@samsung.com>
 
   systemd is free software; you can redistribute it and/or modify it
   under the terms of the GNU Lesser General Public License as published by
@@ -31,7 +33,7 @@ typedef struct Proxy Proxy;
 
 typedef struct BusCynara BusCynara;
 typedef struct ProxyContext ProxyContext;
-typedef struct PolicyMessageCheckHistory PolicyMessageCheckHistory; 
+typedef struct PolicyMessageCheckHistory PolicyMessageCheckHistory;
 
 struct Proxy {
         sd_bus *local_bus;
@@ -63,13 +65,3 @@ BusCynara* proxy_ref_bus_cynara(ProxyContext *pc);
 
 DEFINE_TRIVIAL_CLEANUP_FUNC(Proxy*, proxy_free);
 DEFINE_TRIVIAL_CLEANUP_FUNC(ProxyContext*, proxy_context_free);
-
-
-/*
- * function resturn message to send if there is no message to send it returns NULL 
- *
-**/
-
-sd_bus_message* proxy_dispatch_message_to_dest(Proxy *p, sd_bus_message *m, PolicyDeferredMessage *deferred);
-
-sd_bus_message* proxy_dispatch_message_to_local(Proxy *p, sd_bus_message *m, PolicyDeferredMessage *deferred);
