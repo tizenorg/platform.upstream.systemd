@@ -119,7 +119,7 @@ static int parse_config(void) {
         return config_parse_many("/etc/systemd/coredump.conf",
                                  CONF_DIRS_NULSTR("systemd/coredump.conf"),
                                  "Coredump\0",
-                                 config_item_table_lookup, items,
+                                 false, items,
                                  false, NULL);
 }
 

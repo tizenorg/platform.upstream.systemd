@@ -230,7 +230,7 @@ static int parse_password(const char *filename, char **wall) {
 
         r = config_parse(NULL, filename, NULL,
                          NULL,
-                         config_item_table_lookup, items,
+                         false, items,
                          true, false, true, NULL);
         if (r < 0)
                 return r;

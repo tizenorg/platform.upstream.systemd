@@ -651,7 +651,7 @@ static int netdev_load_one(Manager *manager, const char *filename) {
 
         r = config_parse(NULL, filename, file,
                          "Match\0NetDev\0",
-                         config_item_perf_lookup, network_netdev_gperf_lookup,
+                         true, network_netdev_gperf_lookup,
                          true, false, true, netdev_raw);
         if (r < 0)
                 return r;
@@ -692,7 +692,7 @@ static int netdev_load_one(Manager *manager, const char *filename) {
 
         r = config_parse(NULL, filename, file,
                          NETDEV_VTABLE(netdev)->sections,
-                         config_item_perf_lookup, network_netdev_gperf_lookup,
+                         true, network_netdev_gperf_lookup,
                          false, false, false, netdev);
         if (r < 0)
                 return r;

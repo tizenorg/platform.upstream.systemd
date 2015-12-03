@@ -3584,7 +3584,7 @@ static int load_from_path(Unit *u, const char *path) {
                 /* Now, parse the file contents */
                 r = config_parse(u->id, filename, f,
                                  UNIT_VTABLE(u)->sections,
-                                 config_item_perf_lookup, load_fragment_gperf_lookup,
+                                 true, load_fragment_gperf_lookup,
                                  false, true, false, u);
                 if (r < 0)
                         return r;

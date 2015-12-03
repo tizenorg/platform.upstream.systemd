@@ -119,7 +119,7 @@ static int network_load_one(Manager *manager, const char *filename) {
                          "DHCPv4\0"
                          "Bridge\0"
                          "BridgeFDB\0",
-                         config_item_perf_lookup, network_network_gperf_lookup,
+                         true, network_network_gperf_lookup,
                          false, false, true, network);
         if (r < 0)
                 return r;

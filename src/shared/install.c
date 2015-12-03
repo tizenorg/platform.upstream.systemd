@@ -1067,7 +1067,7 @@ static int unit_file_load(
 
         r = config_parse(NULL, path, f,
                          NULL,
-                         config_item_table_lookup, items,
+                         false, items,
                          true, true, false, info);
         if (r < 0)
                 return r;

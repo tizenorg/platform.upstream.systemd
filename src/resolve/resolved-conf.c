@@ -148,6 +148,6 @@ int manager_parse_config_file(Manager *m) {
         return config_parse_many("/etc/systemd/resolved.conf",
                                  CONF_DIRS_NULSTR("systemd/resolved.conf"),
                                  "Resolve\0",
-                                 config_item_perf_lookup, resolved_gperf_lookup,
+                                 true, resolved_gperf_lookup,
                                  false, m);
 }

@@ -167,7 +167,7 @@ static int add_dbus(const char *path, const char *fname, const char *type) {
         p = strjoina(path, "/", fname);
         r = config_parse(NULL, p, NULL,
                          "D-BUS Service\0",
-                         config_item_table_lookup, table,
+                         false, table,
                          true, false, true, NULL);
         if (r < 0)
                 return r;

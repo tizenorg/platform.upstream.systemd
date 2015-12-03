@@ -75,7 +75,7 @@ int unit_load_dropin(Unit *u) {
         STRV_FOREACH(f, u->dropin_paths) {
                 config_parse(u->id, *f, NULL,
                              UNIT_VTABLE(u)->sections,
-                             config_item_perf_lookup, load_fragment_gperf_lookup,
+                             true, load_fragment_gperf_lookup,
                              false, false, false, u);
         }
 

@@ -100,6 +100,6 @@ int manager_parse_config_file(Manager *m) {
         return config_parse_many("/etc/systemd/timesyncd.conf",
                                  CONF_DIRS_NULSTR("systemd/timesyncd.conf"),
                                  "Time\0",
-                                 config_item_perf_lookup, timesyncd_gperf_lookup,
+                                 true, timesyncd_gperf_lookup,
                                  false, m);
 }

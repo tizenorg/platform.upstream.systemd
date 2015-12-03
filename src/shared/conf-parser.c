@@ -24,7 +24,9 @@
 #include <errno.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <sys/mman.h>
 #include <netinet/ether.h>
+#include <ctype.h>
 
 #include "conf-parser.h"
 #include "conf-files.h"
@@ -82,115 +84,82 @@ int log_syntax_internal(
         return r;
 }
 
-int config_item_table_lookup(
-                const void *table,
-                const char *section,
-                const char *lvalue,
-                ConfigParserCallback *func,
-                int *ltype,
-                void **data,
-                void *userdata) {
-
-        const ConfigTableItem *t;
-
-        assert(table);
-        assert(lvalue);
-        assert(func);
-        assert(ltype);
-        assert(data);
-
-        for (t = table; t->lvalue; t++) {
-
-                if (!streq(lvalue, t->lvalue))
-                        continue;
-
-                if (!streq_ptr(section, t->section))
-                        continue;
-
-                *func = t->parse;
-                *ltype = t->ltype;
-                *data = t->data;
-                return 1;
-        }
-
-        return 0;
-}
-
-int config_item_perf_lookup(
-                const void *table,
-                const char *section,
-                const char *lvalue,
-                ConfigParserCallback *func,
-                int *ltype,
-                void **data,
-                void *userdata) {
-
-        ConfigPerfItemLookup lookup = (ConfigPerfItemLookup) table;
-        const ConfigPerfItem *p;
-
-        assert(table);
-        assert(lvalue);
-        assert(func);
-        assert(ltype);
-        assert(data);
-
-        if (!section)
-                p = lookup(lvalue, strlen(lvalue));
-        else {
-                char *key;
-
-                key = strjoin(section, ".", lvalue, NULL);
-                if (!key)
-                        return -ENOMEM;
-
-                p = lookup(key, strlen(key));
-                free(key);
-        }
-
-        if (!p)
-                return 0;
-
-        *func = p->parse;
-        *ltype = p->ltype;
-        *data = (uint8_t*) userdata + p->offset;
-        return 1;
-}
-
 /* Run the user supplied parser for an assignment */
-static int next_assignment(const char *unit,
-                           const char *filename,
+static int next_assignment(const char * __restrict__ unit,
+                           const char * __restrict__ filename,
                            unsigned line,
-                           ConfigItemLookup lookup,
-                           const void *table,
-                           const char *section,
+                           bool perf_lookup,
+                           const void * __restrict__ table,
+                           char *section,
                            unsigned section_line,
-                           const char *lvalue,
-                           const char *rvalue,
+                           char *lvalue,
+                           const char * __restrict__ rvalue,
+                           uint_fast32_t len_section,
+                           uint_fast32_t len_lvalue,
                            bool relaxed,
-                           void *userdata) {
+                           void * __restrict__ userdata) {
 
         ConfigParserCallback func = NULL;
-        int ltype = 0;
-        void *data = NULL;
-        int r;
+        int ltype;
+        void *data;
 
         assert(filename);
         assert(line > 0);
-        assert(lookup);
         assert(lvalue);
         assert(rvalue);
+        assert(table);
 
-        r = lookup(table, section, lvalue, &func, &ltype, &data, userdata);
-        if (r < 0)
-                return r;
+        if (perf_lookup) {
+                ConfigPerfItemLookup lookup = (ConfigPerfItemLookup) table;
+                ConfigPerfItem const *p;
+                char const *key = lvalue;
+                uint_fast32_t len_key = len_lvalue;
 
-        if (r > 0) {
-                if (func)
-                        return func(unit, filename, line, section, section_line,
-                                    lvalue, ltype, rvalue, data, userdata);
+                if (section) {
+                        key = section;
+                        section[len_section] = '.';
+                        memmove(section + len_section + 1, lvalue, len_lvalue);
+                        section[len_section + 1 + len_lvalue] = '\0';
+                        lvalue = section + len_section + 1;
+                        len_key += len_section + 1;
+                }
 
-                return 0;
+                p = lookup(key, len_key);
+
+                if (section)
+                        section[len_section] = '\0';
+
+                if (p) {
+                        func = p->parse;
+                        ltype = p->ltype;
+                        data = (uint8_t*) userdata + p->offset;
+                }
+        } else {
+                const ConfigTableItem *t;
+                uint_fast32_t const size_lvalue = len_lvalue + 1;
+                uint_fast32_t size_section = len_section + 1;
+
+                for (t = (ConfigTableItem const *)table; t->lvalue; ++t) {
+
+                        if (memcmp(lvalue, t->lvalue, size_lvalue))
+                                continue;
+
+                        if (section) {
+                                if (!t->section || memcmp(section, t->section, size_section))
+                                        continue;
+                        } else if (t->section)
+                                continue;
+
+                        func = t->parse;
+                        ltype = t->ltype;
+                        data = t->data;
+                        break;
+                }
         }
+
+        if (func)
+                return func(unit, filename, line, section, section_line,
+                            lvalue, ltype, rvalue, data, userdata);
 
         /* Warn about unknown non-extension fields. */
         if (!relaxed && !startswith(lvalue, "X-"))
@@ -201,247 +170,333 @@ static int next_assignment(const char *unit,
 }
 
 /* Parse a variable assignment line */
-static int parse_line(const char* unit,
-                      const char *filename,
-                      unsigned line,
-                      const char *sections,
-                      ConfigItemLookup lookup,
-                      const void *table,
+static int parse_line(const char * __restrict__ unit,
+                      const char * __restrict__ filename,
+                      uint_fast32_t line,
+                      const char * __restrict__ sections,
+                      bool perf_lookup,
+                      const void * __restrict__ table,
                       bool relaxed,
                       bool allow_include,
-                      char **section,
-                      unsigned *section_line,
-                      bool *section_ignored,
-                      char *l,
-                      void *userdata) {
+                      char * __restrict__ * __restrict__ section,
+                      uint_fast32_t * __restrict__ section_line,
+                      uint_fast32_t * __restrict__ len_section,
+                      bool * __restrict__ section_seen,
+                      char * __restrict__ l,
+                      uint_fast32_t l_size,
+                      bool buffers_beg /* first line, no heading whitespace */,
+                      bool buffers_end /* last line, no trailing whitespace */,
+                      void * __restrict__ userdata) {
 
         char *e;
+        char *f;
+        uint_fast32_t e_size;
+        char fallback[256];
+        int r;
 
         assert(filename);
         assert(line > 0);
-        assert(lookup);
         assert(l);
+        assert(l_size > 0);
 
-        l = strstrip(l);
+        {
+                char first = *l;
 
-        if (!*l)
-                return 0;
+                if ('[' == first) {
+                        char *n;
 
-        if (strchr(COMMENTS "\n", *l))
-                return 0;
+                        if (l[l_size-1] != ']') {
+                                log_syntax(unit, LOG_ERR, filename, line, EBADMSG,
+                                           "Invalid section header '%s'", l);
+                                return -EBADMSG;
+                        }
 
-        if (startswith(l, ".include ")) {
-                _cleanup_free_ char *fn = NULL;
+                        *section_seen = true;
 
-                /* .includes are a bad idea, we only support them here
-                 * for historical reasons. They create cyclic include
-                 * problems and make it difficult to detect
-                 * configuration file changes with an easy
-                 * stat(). Better approaches, such as .d/ drop-in
-                 * snippets exist.
-                 *
-                 * Support for them should be eventually removed. */
+                        l[l_size-1] = '\0';
 
-                if (!allow_include) {
-                        log_syntax(unit, LOG_ERR, filename, line, EBADMSG,
-                                   ".include not allowed here. Ignoring.");
+                        n = l+1;
+
+                        if (sections && !nulstr_contains(sections, n)) {
+
+                                if (!relaxed && !startswith(n, "X-"))
+                                        log_syntax(unit, LOG_WARNING, filename, line, EINVAL,
+                                                   "Unknown section '%s'. Ignoring.", n);
+
+                                *section = NULL;
+                                *section_line = 0;
+                        } else {
+                                *section = n;
+                                *section_line = line;
+                                *len_section = l_size - 2;
+                        }
+
                         return 0;
                 }
+                else if (_unlikely_('.' == first) && !memcmp(l+1, "include ", 8)) {
+                        _cleanup_free_ char *fn = NULL;
+                        char *p;
 
-                fn = file_in_same_dir(filename, strstrip(l+9));
-                if (!fn)
-                        return -ENOMEM;
+                        /* .includes are a bad idea, we only support them here
+                         * for historical reasons. They create cyclic include
+                         * problems and make it difficult to detect
+                         * configuration file changes with an easy
+                         * stat(). Better approaches, such as .d/ drop-in
+                         * snippets exist.
+                         *
+                         * Support for them should be eventually removed. */
 
-                return config_parse(unit, fn, NULL, sections, lookup, table, relaxed, false, false, userdata);
-        }
+                        if (!allow_include) {
+                                log_syntax(unit, LOG_ERR, filename, line, EBADMSG,
+                                           ".include not allowed here. Ignoring.");
+                                return 0;
+                        }
 
-        if (*l == '[') {
-                size_t k;
-                char *n;
+                        p = l+9;
+                        if (_unlikely_(buffers_end)) {
+                            memmove(p-1, p, l_size-9);
+                            --p;
+                        }
+                        p[l_size-9] = '\0';
 
-                k = strlen(l);
-                assert(k > 0);
+                        fn = file_in_same_dir(filename, p);
+                        if (_unlikely_(!fn))
+                                return -ENOMEM;
 
-                if (l[k-1] != ']') {
-                        log_syntax(unit, LOG_ERR, filename, line, EBADMSG,
-                                   "Invalid section header '%s'", l);
-                        return -EBADMSG;
+                        return config_parse(unit, fn, NULL, sections, perf_lookup, table, relaxed, false, false, userdata);
                 }
-
-                n = strndup(l+1, k-2);
-                if (!n)
-                        return -ENOMEM;
-
-                if (sections && !nulstr_contains(sections, n)) {
-
-                        if (!relaxed && !startswith(n, "X-"))
-                                log_syntax(unit, LOG_WARNING, filename, line, EINVAL,
-                                           "Unknown section '%s'. Ignoring.", n);
-
-                        free(n);
-                        free(*section);
-                        *section = NULL;
-                        *section_line = 0;
-                        *section_ignored = true;
-                } else {
-                        free(*section);
-                        *section = n;
-                        *section_line = line;
-                        *section_ignored = false;
-                }
-
-                return 0;
         }
 
         if (sections && !*section) {
 
-                if (!relaxed && !*section_ignored)
+                if (!relaxed && !*section_seen)
                         log_syntax(unit, LOG_WARNING, filename, line, EINVAL,
                                    "Assignment outside of section. Ignoring.");
 
                 return 0;
         }
 
-        e = strchr(l, '=');
-        if (!e) {
+        e = (char*)memchr(l, '=', l_size);
+        if (_unlikely_(!e)) {
                 log_syntax(unit, LOG_WARNING, filename, line, EINVAL, "Missing '='.");
                 return -EBADMSG;
         }
 
-        *e = 0;
-        e++;
+        f = e;
+        while (--e >= l && isspace(*e));
+        e_size = e-l+1;
+        while (++f < l+l_size && isspace(*f));
+        e[1] = '\0';
 
-        return next_assignment(unit,
-                               filename,
-                               line,
-                               lookup,
-                               table,
-                               *section,
-                               *section_line,
-                               strstrip(l),
-                               strstrip(e),
-                               relaxed,
-                               userdata);
+        if (_unlikely_(buffers_end)) {
+                if (e+1 == f-1) {
+                        if (_unlikely_(buffers_beg)) {
+
+                                if (_likely_(e_size < sizeof(fallback)))
+                                        e = fallback;
+                                else if (!(e = new(char, e_size+1)))
+                                        return -ENOMEM;
+
+                                memcpy(e, l, e_size);
+                        } else {
+                                memmove(l-1, l, e_size);
+                                e = l-1;
+                        }
+                } else
+                        e = l;
+
+                memmove(f-1, f, l_size - (f-l));
+                --f;
+                --l_size;
+        } else
+                e = l;
+
+        e[e_size] = '\0';
+        l[l_size] = '\0';
+
+        r = next_assignment(unit,
+                            filename,
+                            line,
+                            perf_lookup,
+                            table,
+                            *section,
+                            *section_line,
+                            e,
+                            f,
+                            *len_section,
+                            e_size,
+                            relaxed,
+                            userdata);
+
+        if (_unlikely_(e != l) && _unlikely_(e != l-1) && _unlikely_(e != fallback))
+                free(e);
+
+        return r;
 }
 
 /* Go through the file and parse each line */
-int config_parse(const char *unit,
-                 const char *filename,
-                 FILE *f,
-                 const char *sections,
-                 ConfigItemLookup lookup,
-                 const void *table,
+int config_parse(const char * __restrict__ unit,
+                 const char * __restrict__ filename,
+                 FILE * __restrict__ f,
+                 const char * __restrict__ sections,
+                 bool perf_lookup,
+                 const void * __restrict__ table,
                  bool relaxed,
                  bool allow_include,
                  bool warn,
-                 void *userdata) {
+                 void * __restrict__ userdata) {
 
-        _cleanup_free_ char *section = NULL, *continuation = NULL;
-        _cleanup_fclose_ FILE *ours = NULL;
-        unsigned line = 0, section_line = 0;
-        bool section_ignored = false;
-        int r;
+        char *section = NULL;
+        char *line = NULL;
+        uint_fast32_t lineno = 0, section_line = 0;
+        int fd, r = 0;
+        uint_fast32_t size, s, line_size, len_section;
+        bool in_comment;
+        char * __restrict__ ptr, *p;
+        bool section_seen = false;
 
         assert(filename);
-        assert(lookup);
 
-        if (!f) {
-                f = ours = fopen(filename, "re");
-                if (!f) {
-                        /* Only log on request, except for ENOENT,
-                         * since we return 0 to the caller. */
-                        if (warn || errno == ENOENT)
-                                log_full(errno == ENOENT ? LOG_DEBUG : LOG_ERR,
-                                         "Failed to open configuration file '%s': %m", filename);
-                        return errno == ENOENT ? 0 : -errno;
-                }
+        fd = f ? fileno(f) : open(filename, O_RDONLY);
+        if (_unlikely_(fd < 0)) {
+                /* Only log on request, except for ENOENT,
+                 * since we return 0 to the caller. */
+                if (warn || errno == ENOENT)
+                        log_full(errno == ENOENT ? LOG_DEBUG : LOG_ERR,
+                                 "Failed to open configuration file '%s': %m", filename);
+                return errno == ENOENT ? 0 : -errno;
         }
 
-        fd_warn_permissions(filename, fileno(f));
+        {
+                struct stat st;
 
-        while (!feof(f)) {
-                char l[LINE_MAX], *p, *c = NULL, *e;
-                bool escaped = false;
-
-                if (!fgets(l, sizeof(l), f)) {
-                        if (feof(f))
-                                break;
-
-                        log_error_errno(errno, "Failed to read configuration file '%s': %m", filename);
-                        return -errno;
+                if (_unlikely_(fstat(fd, &st))) {
+                        r = -errno;
+                        goto close;
                 }
 
-                truncate_nl(l);
+                if (_unlikely_(st.st_size <= 0))
+                        goto close;
 
-                if (continuation) {
-                        c = strappend(continuation, l);
-                        if (!c) {
-                                if (warn)
-                                        log_oom();
-                                return -ENOMEM;
+                if (_unlikely_(st.st_size > UINT32_MAX)) {
+                        r = ENOMEM;
+                        goto close;
+                }
+
+                size = st.st_size;
+        }
+
+        fd_warn_permissions(filename, fd);
+
+        ptr = (char*)mmap(0, size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+
+        if (_unlikely_(MAP_FAILED == ptr)) {
+                r = -errno;
+                goto close;
+        }
+
+        p = ptr;
+        s = size;
+        for (;;) {
+                char *nl = (char*)memchr(p, '\n', s);
+                uint_fast32_t nl_size = _likely_(nl) ? (uint_fast32_t)(nl-p) : s;
+
+                s -= nl_size + 1;
+
+                if (line) {
+                        if (_likely_(!in_comment))
+                                memmove(line + line_size, p, nl_size);
+                        else
+                                ++line_size;
+
+                        line_size += nl_size;
+                } else {
+                        char c = '\0';
+                        while (nl_size) {
+                                c = *p;
+                                if (!isspace(c))
+                                        break;
+                                ++p;
+                                --nl_size;
                         }
 
-                        free(continuation);
-                        continuation = NULL;
-                        p = c;
-                } else
-                        p = l;
-
-                for (e = p; *e; e++) {
-                        if (escaped)
-                                escaped = false;
-                        else if (*e == '\\')
-                                escaped = true;
+                        line = p;
+                        line_size = nl_size;
+                        in_comment = (';' == c || '#' == c);
                 }
 
-                if (escaped) {
-                        *(e-1) = ' ';
+                p += nl_size + 1;
 
-                        if (c)
-                                continuation = c;
-                        else {
-                                continuation = strdup(l);
-                                if (!continuation) {
-                                        if (warn)
-                                                log_oom();
-                                        return -ENOMEM;
-                                }
+                {
+                        uint_fast32_t i = line_size;
+                        int_fast8_t escaped = 0;
+
+                        while (i && _unlikely_('\\' == line[--i]))
+                                escaped = ~escaped;
+
+                        if (_unlikely_(escaped)) {
+                                if (_likely_(line_size > 1))
+                                        line[line_size-1] = ' ';
+                                else /* just whitespace with \\ at the end -> skip */
+                                        line = NULL;
+
+                                if (_likely_(nl))
+                                        continue;
+                                if (_unlikely_(line_size == 1))
+                                        break;
                         }
-
-                        continue;
                 }
 
-                r = parse_line(unit,
-                               filename,
-                               ++line,
-                               sections,
-                               lookup,
-                               table,
-                               relaxed,
-                               allow_include,
-                               &section,
-                               &section_line,
-                               &section_ignored,
-                               p,
-                               userdata);
-                free(c);
+                ++lineno;
 
-                if (r < 0) {
-                        if (warn)
+                if (_likely_(!in_comment)) {
+                        while (line_size && isspace(line[line_size-1]))
+                                --line_size;
+
+                        if (_likely_(line_size))
+                                r = parse_line(unit,
+                                               filename,
+                                               lineno,
+                                               sections,
+                                               perf_lookup,
+                                               table,
+                                               relaxed,
+                                               allow_include,
+                                               &section,
+                                               &section_line,
+                                               &len_section,
+                                               &section_seen,
+                                               line,
+                                               line_size,
+                                               _unlikely_(line == ptr),
+                                               _unlikely_(line+line_size == ptr+size),
+                                               userdata);
+                }
+
+                if (_unlikely_(!nl || r)) {
+                        if (_unlikely_(warn && r))
                                 log_warning_errno(r, "Failed to parse file '%s': %m",
                                                   filename);
-                        return r;
+                        break;
                 }
+
+                line = NULL;
         }
 
-        return 0;
+        assert_se(munmap(ptr, size) == 0);
+
+close:
+        if (!f)
+                safe_close(fd);
+
+        return r;
 }
 
 /* Parse each config file in the specified directories. */
 int config_parse_many(const char *conf_file,
                       const char *conf_file_dirs,
                       const char *sections,
-                      ConfigItemLookup lookup,
+                      bool perf_lookup,
                       const void *table,
                       bool relaxed,
                       void *userdata) {
@@ -454,13 +509,13 @@ int config_parse_many(const char *conf_file,
                 return r;
 
         if (conf_file) {
-                r = config_parse(NULL, conf_file, NULL, sections, lookup, table, relaxed, false, true, userdata);
+                r = config_parse(NULL, conf_file, NULL, sections, perf_lookup, table, relaxed, false, true, userdata);
                 if (r < 0)
                         return r;
         }
 
         STRV_FOREACH(fn, files) {
-                r = config_parse(NULL, *fn, NULL, sections, lookup, table, relaxed, false, true, userdata);
+                r = config_parse(NULL, *fn, NULL, sections, perf_lookup, table, relaxed, false, true, userdata);
                 if (r < 0)
                         return r;
         }
