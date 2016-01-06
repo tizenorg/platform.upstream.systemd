@@ -23,7 +23,6 @@ Source2:        %{name}-rpmlintrc
 Source3:        default.target.ivi
 Source1001:     systemd.manifest
 BuildRequires:  gperf
-BuildRequires:  hwdata
 BuildRequires:  intltool >= 0.40.0
 BuildRequires:  libacl-devel
 BuildRequires:  libblkid-devel >= 2.20
@@ -41,7 +40,6 @@ BuildRequires:  pkgconfig(libkmod)
 BuildRequires:  pkgconfig(mount)
 Requires:       dbus
 Requires:       filesystem
-Requires:       hwdata
 Requires(post): coreutils
 Requires(post): gawk
 Requires(pre):  coreutils
