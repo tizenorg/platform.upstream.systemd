@@ -70,8 +70,9 @@
 #  define DEFAULT_SYSTEM_BUS_ADDRESS UNIX_SYSTEM_BUS_ADDRESS
 #endif
 
-#define UNIX_USER_BUS_ADDRESS_FMT "unix:path=%s/bus"
+#define UNIX_USER_BUS_ADDRESS_FMT "unix:path=%s/dbus/user_bus_socket"
 #define KERNEL_USER_BUS_ADDRESS_FMT "kernel:path=/sys/fs/kdbus/"UID_FMT"-user/bus"
+
 
 #define PLYMOUTH_SOCKET {                                       \
                 .un.sun_family = AF_UNIX,                       \
