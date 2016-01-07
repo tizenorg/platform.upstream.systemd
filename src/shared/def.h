@@ -66,11 +66,12 @@
 
 #ifdef ENABLE_KDBUS
 #  define DEFAULT_SYSTEM_BUS_ADDRESS KERNEL_SYSTEM_BUS_ADDRESS ";" UNIX_SYSTEM_BUS_ADDRESS
+#  define UNIX_USER_BUS_ADDRESS_FMT "unix:path=%s/dbus/user_bus_socket"
 #else
 #  define DEFAULT_SYSTEM_BUS_ADDRESS UNIX_SYSTEM_BUS_ADDRESS
+#  define UNIX_USER_BUS_ADDRESS_FMT "unix:path=%s/bus"
 #endif
 
-#define UNIX_USER_BUS_ADDRESS_FMT "unix:path=%s/bus"
 #define KERNEL_USER_BUS_ADDRESS_FMT "kernel:path=/sys/fs/kdbus/"UID_FMT"-user/bus"
 
 #define PLYMOUTH_SOCKET {                                       \
