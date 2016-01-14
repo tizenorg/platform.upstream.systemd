@@ -247,7 +247,10 @@ rm -f %{buildroot}%{_prefix}/lib/rpm/macros.d/macros.systemd
 
 # Exclude ELF binaries
 rm -f %{buildroot}/%{_prefix}/lib/systemd/system-generators/systemd-debug-generator
+rm -f %{buildroot}/%{_prefix}/lib/systemd/system-generators/systemd-efi-boot-generator
+rm -f %{buildroot}/%{_prefix}/lib/systemd/system-generators/systemd-gpt-auto-generator
 rm -f %{buildroot}/%{_prefix}/lib/systemd/system-generators/systemd-hibernate-resume-generator
+rm -f %{buildroot}/%{_prefix}/lib/systemd/system-generators/systemd-system-update-generator
 
 # end of install
 %pre
@@ -413,11 +416,8 @@ fi
 %dir %{_prefix}/lib/systemd/catalog
 %{_prefix}/lib/systemd/catalog/systemd.catalog
 %{_prefix}/lib/udev
-%{_prefix}/lib/systemd/system-generators/systemd-efi-boot-generator
 %{_prefix}/lib/systemd/system-generators/systemd-getty-generator
 %{_prefix}/lib/systemd/system-generators/systemd-fstab-generator
-%{_prefix}/lib/systemd/system-generators/systemd-system-update-generator
-%{_prefix}/lib/systemd/system-generators/systemd-gpt-auto-generator
 %if %{with kdbus}
 %{_prefix}/lib/systemd/system-generators/systemd-dbus1-generator
 %{_prefix}/lib/systemd/user-generators/systemd-dbus1-generator
