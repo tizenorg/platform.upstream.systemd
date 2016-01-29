@@ -20,7 +20,6 @@ Group:          Base/Startup
 Source0:        http://www.freedesktop.org/software/systemd/%{name}-%{version}.tar.xz
 Source1:        pamconsole-tmp.conf
 Source2:        %{name}-rpmlintrc
-Source3:        default.target.ivi
 Source1001:     systemd.manifest
 BuildRequires:  gperf
 BuildRequires:  intltool >= 0.40.0
@@ -225,10 +224,6 @@ install -Dm644 tmpfiles.d/legacy.conf %{buildroot}%{_prefix}/lib/tmpfiles.d/lega
 install -m644 %{SOURCE1} %{buildroot}%{_prefix}/lib/tmpfiles.d/
 
 install -m 755 -d %{buildroot}/%{_prefix}/lib/systemd/system
-%if "%{profile}" == "ivi"
-rm -f %{buildroot}/%{_prefix}/lib/systemd/system/default.target
-install -m 644 %{SOURCE3} %{buildroot}/%{_prefix}/lib/systemd/system/default.target
-%endif
 
 rm -rf %{buildroot}/%{_docdir}/%{name}
 
