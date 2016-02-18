@@ -316,7 +316,7 @@ define install-relative-aliases
 	while [ -n "$$1" ]; do \
 		$(MKDIR_P) `dirname $(DESTDIR)$$dir/$$2` && \
 		rm -f $(DESTDIR)$$dir/$$2 && \
-		cd $(DESTDIR); $(LN_S) ./$$1 ./$$dir/$$2 && \
+		cd $(DESTDIR); $(LN_S) $$1 ./$$dir/$$2 && \
 		shift 2 || exit $$?; \
 	done
 endef
