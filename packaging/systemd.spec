@@ -13,7 +13,7 @@ Name:           systemd
 Version:        219
 Release:        0%{?release_flags}
 # For a breakdown of the licensing, see README
-License:        LGPL-2.0+ and MIT and GPL-2.0+
+License:        LGPL-2.1+ and MIT and GPL-2.0+
 Summary:        A System and Service Manager
 Url:            http://www.freedesktop.org/wiki/Software/systemd
 Group:          Base/Startup
@@ -65,7 +65,7 @@ elaborate transactional dependency-based service control logic. It can
 work as a drop-in replacement for sysvinit.
 
 %package -n libsystemd
-License:        LGPL-2.0+ and MIT
+License:        LGPL-2.1+ and MIT
 Summary:        Systemd libraries
 Group:          Base/Startup
 Obsoletes:      libudev < 183
@@ -76,7 +76,7 @@ Conflicts:      systemd < 185-4
 Libraries for systemd and udev, as well as the systemd PAM module.
 
 %package devel
-License:        LGPL-2.0+ and MIT
+License:        LGPL-2.1+ and MIT
 Summary:        Development headers for systemd
 Requires:       %{name} = %{version}
 Requires:		libsystemd = %{version}
@@ -87,7 +87,7 @@ Obsoletes:      libudev-devel < 183
 Development headers and auxiliary files for developing applications for systemd.
 
 %package analyze
-License:        LGPL-2.0+
+License:        LGPL-2.1+
 Summary:        Tool for processing systemd profiling information
 Requires:       %{name} = %{version}
 Obsoletes:      systemd < 38-5
@@ -99,7 +99,7 @@ initialization at boot.
 at boot.
 
 %package -n libgudev
-License:        LGPL-2.0+
+License:        LGPL-2.1+
 Summary:        Libraries for adding libudev support to applications that use glib
 Requires:       %{name} = %{version}
 
@@ -108,7 +108,7 @@ This package contains the libraries that make it easier to use libudev
 functionality from applications that use glib.
 
 %package -n libgudev-devel
-License:        LGPL-2.0+
+License:        LGPL-2.1+
 Summary:        Header files for adding libudev support to applications that use glib
 Requires:       libgudev = %{version}
 
