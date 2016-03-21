@@ -1178,7 +1178,7 @@ static int ffs_write_descs(int fd, Unit *u) {
 
         r = copy_file_fd(s->usb_function_descriptors, fd, false);
         if (r < 0)
-                return 0;
+                return r;
 
         r = copy_file_fd(s->usb_function_strings, fd, false);
 
