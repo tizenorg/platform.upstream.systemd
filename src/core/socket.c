@@ -1337,8 +1337,10 @@ static int socket_open_fds(Socket *s) {
                                 goto rollback;
                 } else  if (p->type == SOCKET_USB_FUNCTION) {
 
+                        const char* ep = path_make_absolute("ep0", p->path);
+
                         r = ffs_address_create(
-                                        p->path,
+                                        ep,
                                         &p->fd);
                         if (r < 0)
                                 goto rollback;
