@@ -8,6 +8,8 @@
 %define release_flags %{?with_kdbus:+kdbus}
 
 %define WITH_RANDOMSEED 0
+%define WITH_BASH_COMPLETION 0
+%define WITH_ZSH_COMPLETION 0
 
 Name:           systemd
 Version:        219
@@ -247,6 +249,14 @@ rm -f %{buildroot}/%{_prefix}/lib/systemd/system-generators/systemd-gpt-auto-gen
 rm -f %{buildroot}/%{_prefix}/lib/systemd/system-generators/systemd-hibernate-resume-generator
 rm -f %{buildroot}/%{_prefix}/lib/systemd/system-generators/systemd-system-update-generator
 
+# Shell Completion
+%if ! %{?WITH_BASH_COMPLETION}
+rm -rf %{buildroot}/%{_datadir}/bash-completion/*
+%endif
+%if ! %{?WITH_ZSH_COMPLETION}
+rm -rf %{buildroot}/%{_datadir}/zsh/site-functions/*
+%endif
+
 # end of install
 %pre
 /usr/bin/getent group cdrom >/dev/null 2>&1 || /usr/sbin/groupadd -r -g 11 cdrom >/dev/null 2>&1 || :
@@ -314,9 +324,13 @@ fi
 %dir %{_sysconfdir}/sysctl.d
 %dir %{_sysconfdir}/modules-load.d
 %dir %{_sysconfdir}/binfmt.d
+%if %{?WITH_BASH_COMPLETION}
 %{_datadir}/bash-completion/*
+%endif
+%if %{?WITH_ZSH_COMPLETION}
 %dir %{_datadir}/zsh/site-functions
 %{_datadir}/zsh/site-functions/*
+%endif
 %dir %{_sysconfdir}/udev
 %dir %{_sysconfdir}/udev/rules.d
 %dir %{_prefix}/lib/systemd
