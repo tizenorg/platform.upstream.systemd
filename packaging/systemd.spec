@@ -314,9 +314,9 @@ fi
 %dir %{_sysconfdir}/sysctl.d
 %dir %{_sysconfdir}/modules-load.d
 %dir %{_sysconfdir}/binfmt.d
-%{_datadir}/bash-completion/*
-%dir %{_datadir}/zsh/site-functions
-%{_datadir}/zsh/site-functions/*
+#%{_datadir}/bash-completion/*
+#%dir %{_datadir}/zsh/site-functions
+#%{_datadir}/zsh/site-functions/*
 %dir %{_sysconfdir}/udev
 %dir %{_sysconfdir}/udev/rules.d
 %dir %{_prefix}/lib/systemd
