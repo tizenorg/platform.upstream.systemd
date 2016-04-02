@@ -10,6 +10,7 @@
 %define WITH_RANDOMSEED 0
 %define WITH_BASH_COMPLETION 0
 %define WITH_ZSH_COMPLETION 0
+%define WITH_COREDUMP 0
 
 Name:           systemd
 Version:        219
@@ -128,6 +129,9 @@ cp %{SOURCE1001} .
         %{enable kdbus} \
 %if ! %{WITH_RANDOMSEED}
         --disable-randomseed \
+%endif
+%if ! %{?WITH_COREDUMP}
+	--disable-coredump \
 %endif
         --enable-compat-libs \
         --enable-bootchart \
@@ -315,7 +319,9 @@ fi
 %{_prefix}/lib/kernel/install.d/90-loaderentry.install
 %{_bindir}/hostnamectl
 %{_bindir}/localectl
+%if %{?WITH_COREDUMP}
 %{_bindir}/coredumpctl
+%endif
 %{_bindir}/timedatectl
 %dir %{_sysconfdir}/systemd
 %dir %{_sysconfdir}/systemd/system
@@ -355,7 +361,9 @@ fi
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freedesktop.timedate1.conf
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freedesktop.machine1.conf
 %config(noreplace) %{_sysconfdir}/systemd/bootchart.conf
+%if %{?WITH_COREDUMP}
 %config(noreplace) %{_sysconfdir}/systemd/coredump.conf
+%endif
 %config(noreplace) %{_sysconfdir}/systemd/system.conf
 %config(noreplace) %{_sysconfdir}/systemd/user.conf
 %config(noreplace) %{_sysconfdir}/systemd/logind.conf
