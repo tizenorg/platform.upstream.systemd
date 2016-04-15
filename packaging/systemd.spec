@@ -11,6 +11,7 @@
 %define WITH_BASH_COMPLETION 0
 %define WITH_ZSH_COMPLETION 0
 %define WITH_COREDUMP 0
+%define WITH_BACKLIGHT 0
 
 Name:           systemd
 Version:        219
@@ -132,6 +133,9 @@ cp %{SOURCE1001} .
 %endif
 %if ! %{?WITH_COREDUMP}
 	--disable-coredump \
+%endif
+%if ! %{?WITH_BACKLIGHT}
+	--disable-backlight \
 %endif
         --enable-compat-libs \
         --enable-bootchart \
