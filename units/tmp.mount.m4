@@ -19,5 +19,5 @@ What=tmpfs
 Where=/tmp
 Type=tmpfs
 m4_ifdef(`HAVE_SMACK',
-`Options=mode=1777,strictatime,smackfsroot=*',
-`Options=mode=1777,strictatime')
+`Options=mode=1777,strictatime,smackfsroot=*,nosuid,noexec',
+`Options=mode=1777,strictatime,nosuid,noexec')
