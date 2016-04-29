@@ -2539,7 +2539,7 @@ systemd_dbus1_generator_LDADD = \
 dbus1-generator-install-hook:
 	$(AM_V_at)$(MKDIR_P) $(DESTDIR)$(usergeneratordir)
 	$(AM_V_RM)rm -f $(DESTDIR)$(usergeneratordir)/systemd-dbus1-generator
-	cd $(DESTDIR); $(AM_V_LN)$(LN_S) -f ./$(systemgeneratordir)/systemd-dbus1-generator ./$(usergeneratordir)/systemd-dbus1-generator
+	$(AM_V_LN)$(LN_S) -f $(systemgeneratordir)/systemd-dbus1-generator $(DESTDIR)$(usergeneratordir)/systemd-dbus1-generator
 
 dbus1-generator-uninstall-hook:
 	rm -f $(DESTDIR)$(usergeneratordir)/systemd-dbus1-generator
