@@ -92,7 +92,7 @@ static const MountPoint mount_table[] = {
         { "devpts",      "/dev/pts",                  "devpts",     "mode=620,gid=" STRINGIFY(TTY_GID), MS_NOSUID|MS_NOEXEC,
           NULL,          MNT_IN_CONTAINER           },
 #ifdef HAVE_SMACK
-        { "tmpfs",      "/run",                      "tmpfs",      "mode=755,smackfstransmute=System::Run", MS_NOSUID|MS_NODEV|MS_STRICTATIME,
+        { "tmpfs",      "/run",                      "tmpfs",      "mode=775,gid=1051,smackfstransmute=System::Run", MS_NOSUID|MS_NODEV|MS_STRICTATIME, // gid 1051 is system_share
           mac_smack_use,  MNT_FATAL },
         { "tmpfs",      "/sys/fs/cgroup",            "tmpfs",      "mode=755,smackfsroot=*", MS_NOSUID|MS_NOEXEC|MS_NODEV|MS_STRICTATIME,
           mac_smack_use,  MNT_IN_CONTAINER },
