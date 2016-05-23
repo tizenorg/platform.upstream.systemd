@@ -12,6 +12,8 @@
 %define WITH_ZSH_COMPLETION 0
 %define WITH_COREDUMP 0
 %define WITH_BACKLIGHT 0
+%define WITH_TIMEDATED 0
+%define WITH_RFKILL 0
 
 Name:           systemd
 Version:        219
@@ -136,6 +138,12 @@ cp %{SOURCE1001} .
 %endif
 %if ! %{?WITH_BACKLIGHT}
 	--disable-backlight \
+%endif
+%if ! %{?WITH_TIMEDATED}
+	--disable-timedated \
+%endif
+%if ! %{WITH_RFKILL}
+	--disable-rfkill \
 %endif
         --enable-compat-libs \
         --enable-bootchart \
@@ -326,7 +334,9 @@ fi
 %if %{?WITH_COREDUMP}
 %{_bindir}/coredumpctl
 %endif
+%if %{?WITH_TIMEDATED}
 %{_bindir}/timedatectl
+%endif
 %dir %{_sysconfdir}/systemd
 %dir %{_sysconfdir}/systemd/system
 %dir %{_sysconfdir}/systemd/user
@@ -362,7 +372,9 @@ fi
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freedesktop.hostname1.conf
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freedesktop.login1.conf
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freedesktop.locale1.conf
+%if %{?WITH_TIMEDATED}
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freedesktop.timedate1.conf
+%endif
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freedesktop.machine1.conf
 %config(noreplace) %{_sysconfdir}/systemd/bootchart.conf
 %if %{?WITH_COREDUMP}
@@ -466,7 +478,9 @@ fi
 %{_datadir}/dbus-1/system-services/org.freedesktop.hostname1.service
 %{_datadir}/dbus-1/system-services/org.freedesktop.login1.service
 %{_datadir}/dbus-1/system-services/org.freedesktop.locale1.service
+%if %{?WITH_TIMEDATED}
 %{_datadir}/dbus-1/system-services/org.freedesktop.timedate1.service
+%endif
 %{_datadir}/dbus-1/system-services/org.freedesktop.machine1.service
 %dir %{_datadir}/polkit-1
 %dir %{_datadir}/polkit-1/actions
@@ -474,7 +488,9 @@ fi
 %{_datadir}/polkit-1/actions/org.freedesktop.hostname1.policy
 %{_datadir}/polkit-1/actions/org.freedesktop.login1.policy
 %{_datadir}/polkit-1/actions/org.freedesktop.locale1.policy
+%if %{?WITH_TIMEDATED}
 %{_datadir}/polkit-1/actions/org.freedesktop.timedate1.policy
+%endif
 %{_datadir}/polkit-1/actions/org.freedesktop.machine1.policy
 %dir %{_datadir}/factory/
 %dir %{_datadir}/factory/etc
