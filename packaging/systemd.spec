@@ -273,6 +273,8 @@ rm -rf %{buildroot}/%{_datadir}/bash-completion/*
 rm -rf %{buildroot}/%{_datadir}/zsh/site-functions/*
 %endif
 
+mkdir -p %{buildroot}/%{_localstatedir}/log/journal
+
 # end of install
 %pre
 /usr/bin/getent group cdrom >/dev/null 2>&1 || /usr/sbin/groupadd -r -g 11 cdrom >/dev/null 2>&1 || :
@@ -498,6 +500,8 @@ fi
 %{_datadir}/factory/etc/nsswitch.conf
 %{_datadir}/factory/etc/pam.d/other
 %{_datadir}/factory/etc/pam.d/system-auth
+
+%{_localstatedir}/log/journal
 
 # Make sure we don't remove runlevel targets from F14 alpha installs,
 # but make sure we don't create then anew.
