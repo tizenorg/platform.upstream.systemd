@@ -258,7 +258,7 @@ static int device_add_udev_wants(Unit *u, struct udev_device *dev) {
         return 0;
 }
 
-static int device_setup_unit(Manager *m, struct udev_device *dev, const char *path, bool main) {
+static int device_setup_unit(Manager *m, struct udev_device *dev, const char *path, bool main, bool* exist) {
         _cleanup_free_ char *e = NULL;
         const char *sysfs;
         Unit *u = NULL;
@@ -298,9 +298,14 @@ static int device_setup_unit(Manager *m, struct udev_device *dev, const char *pa
                         goto fail;
 
                 unit_add_to_load_queue(u);
-        } else
-                delete = false;
 
+                if(exist != NULL)
+                        *exist = false;
+        } else {
+                delete = false;
+                if(exist != NULL)
+                        *exist = true;
+        }
         /* If this was created via some dependency and has not
          * actually been seen yet ->sysfs will not be
          * initialized. Hence initialize it if necessary. */
@@ -343,14 +348,14 @@ static int device_process_new(Manager *m, struct udev_device *dev) {
                 return 0;
 
         /* Add the main unit named after the sysfs path */
-        r = device_setup_unit(m, dev, sysfs, true);
+        r = device_setup_unit(m, dev, sysfs, true, NULL);
         if (r < 0)
                 return r;
 
         /* Add an additional unit for the device node */
         dn = udev_device_get_devnode(dev);
         if (dn)
-                (void) device_setup_unit(m, dev, dn, false);
+                (void) device_setup_unit(m, dev, dn, false, NULL);
 
         /* Add additional units for all symlinks */
         first = udev_device_get_devlinks_list_entry(dev);
@@ -377,7 +382,7 @@ static int device_process_new(Manager *m, struct udev_device *dev) {
                             st.st_rdev != udev_device_get_devnum(dev))
                                 continue;
 
-                (void) device_setup_unit(m, dev, p, false);
+                (void) device_setup_unit(m, dev, p, false, NULL);
         }
 
         /* Add additional units for all explicitly configured
@@ -394,7 +399,7 @@ static int device_process_new(Manager *m, struct udev_device *dev) {
                         e[l] = 0;
 
                         if (path_is_absolute(e))
-                                (void) device_setup_unit(m, dev, e, false);
+                                (void) device_setup_unit(m, dev, e, false, NULL);
                         else
                                 log_warning("SYSTEMD_ALIAS for %s is not an absolute path, ignoring: %s", sysfs, e);
                 }
@@ -718,6 +723,7 @@ static bool device_supported(Manager *m) {
 int device_found_node(Manager *m, const char *node, bool add, DeviceFound found, bool now) {
         _cleanup_udev_device_unref_ struct udev_device *dev = NULL;
         struct stat st;
+        bool check_exist;
 
         assert(m);
         assert(node);
@@ -756,7 +762,9 @@ int device_found_node(Manager *m, const char *node, bool add, DeviceFound found,
                  * under the name referenced in /proc/swaps or
                  * /proc/self/mountinfo. */
 
-                (void) device_setup_unit(m, dev, node, false);
+                (void) device_setup_unit(m, dev, node, false, &check_exist);
+                if(check_exist && found == DEVICE_FOUND_MOUNT)
+                        found = DEVICE_FOUND_UDEV;
         }
 
         /* Update the device unit's state, should it exist */
