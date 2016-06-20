@@ -44,6 +44,6 @@ struct mempool pool_name = { \
 }
 
 
-#ifdef VALGRIND
+#if defined(VALGRIND) || defined(__SANITIZE_ADDRESS__)
 void mempool_drop(struct mempool *mp);
 #endif

@@ -88,7 +88,7 @@ void mempool_free_tile(struct mempool *mp, void *p) {
         mp->freelist = p;
 }
 
-#ifdef VALGRIND
+#if defined(VALGRIND) || defined(__SANITIZE_ADDRESS__)
 
 void mempool_drop(struct mempool *mp) {
         struct pool *p = mp->first_pool;
