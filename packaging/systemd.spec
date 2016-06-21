@@ -159,6 +159,7 @@ cp %{SOURCE1001} .
         --with-sysvinit-path= \
         --with-sysvrcnd-path= \
         --with-smack-run-label=System \
+        --enable-address-sanitizer \
         cc_cv_CFLAGS__flto=no
 make %{?_smp_mflags} \
         systemunitdir=%{_unitdir} \
