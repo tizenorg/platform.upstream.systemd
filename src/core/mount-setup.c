@@ -83,10 +83,10 @@ static const MountPoint mount_table[] = {
 #ifdef HAVE_SMACK
         { "smackfs",     "/sys/fs/smackfs",           "smackfs",    "smackfsdef=*",            MS_NOSUID|MS_NOEXEC|MS_NODEV,
           mac_smack_use, MNT_FATAL                  },
-        { "tmpfs",       "/dev/shm",                  "tmpfs",      "mode=1777,smackfstransmute=System::Run", MS_NOSUID|MS_NODEV|MS_STRICTATIME,
+        { "tmpfs",       "/dev/shm",                  "tmpfs",      "mode=1777,smackfstransmute=System::Run", MS_NOSUID|MS_NODEV|MS_STRICTATIME|MS_NOEXEC,
           mac_smack_use, MNT_FATAL                  },
 #else
-        { "tmpfs",       "/dev/shm",                  "tmpfs",      "mode=1777",               MS_NOSUID|MS_NODEV|MS_STRICTATIME,
+        { "tmpfs",       "/dev/shm",                  "tmpfs",      "mode=1777",               MS_NOSUID|MS_NODEV|MS_STRICTATIME|MS_NOEXEC,
           NULL,          MNT_FATAL|MNT_IN_CONTAINER },
 #endif
         { "devpts",      "/dev/pts",                  "devpts",     "mode=620,gid=" STRINGIFY(TTY_GID), MS_NOSUID|MS_NOEXEC,

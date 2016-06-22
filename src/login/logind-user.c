@@ -333,7 +333,7 @@ static int user_mkdir_runtime_path(User *u) {
                         goto fail;
                 }
 
-                r = mount("tmpfs", p, "tmpfs", MS_NODEV|MS_NOSUID, t);
+                r = mount("tmpfs", p, "tmpfs", MS_NODEV|MS_NOSUID|MS_NOEXEC, t);
                 if (r < 0) {
                         if (errno != EPERM) {
                                 r = log_error_errno(errno, "Failed to mount per-user tmpfs directory %s: %m", p);
