@@ -1,0 +1,11 @@
+[Unit]
+Description=Default User Directory
+DefaultDependencies=no
+Conflicts=umount.target
+After=systemd-tmpfiles-setup.service
+
+[Mount]
+What=tmpfs
+Where=/run/user/5001
+Type=tmpfs
+Options=mode=700,smackfsroot=*,nosuid,noexec,nodev,uid=5001,gid=100,size=98748k

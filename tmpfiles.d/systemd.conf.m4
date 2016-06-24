@@ -40,3 +40,10 @@ A+ /var/log/journal/%m - - - - group:adm:r-x,group:wheel:r-x
 
 d /var/lib/systemd 0755 root root -
 d /var/lib/systemd/coredump 0755 root root 3d
+
+m4_ifdef(`HAVE_LOGIND',
+`',
+`
+f /run/systemd/users/5001 0775 owner users -
+'
+)m4_dnl

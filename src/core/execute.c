@@ -835,6 +835,7 @@ static int setup_pam(
 
         parent_pid = getpid();
 
+#ifdef HAVE_LOGIND
         pam_pid = fork();
         if (pam_pid < 0)
                 goto fail;
@@ -899,6 +900,7 @@ static int setup_pam(
                 pam_end(handle, pam_code | flags);
                 _exit(r);
         }
+#endif // HAVE_LOGIND
 
         /* If the child was forked off successfully it will do all the
          * cleanups, so forget about the handle here. */
