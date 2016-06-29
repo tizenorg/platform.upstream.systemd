@@ -19,6 +19,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with systemd; If not, see <http://www.gnu.org/licenses/>.
 
+PATH=/bin:/usr/bin:/sbin:/usr/sbin
+
 usage()
 {
     echo "Usage:"
