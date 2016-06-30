@@ -402,6 +402,9 @@ int server_open_dev_kmsg(Server *s) {
                 return 0;
         }
 
+// Requested by Profiling Part & PM Part - DISABLE KMSG online handling from journald
+// Plz, ask them about "why?"
+#if 0
         r = sd_event_add_io(s->event, &s->dev_kmsg_event_source, s->dev_kmsg_fd, EPOLLIN, dispatch_dev_kmsg, s);
         if (r < 0) {
 
@@ -421,6 +424,7 @@ int server_open_dev_kmsg(Server *s) {
                 log_error_errno(r, "Failed to adjust priority of kmsg event source: %m");
                 goto fail;
         }
+#endif
 
         s->dev_kmsg_readable = true;
 
