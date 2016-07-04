@@ -6667,6 +6667,15 @@ static int halt_parse_argv(int argc, char *argv[]) {
                 return -EINVAL;
         }
 
+        /* FIXME from systemd-216 of tizen-2.4 */
+        /* Now, in Tizen, some of services are hardly not
+         * terminated. At last, time-out occurred. It can make serious
+         * problem in shutdown process. Until we solve this problem
+         * reboot is performed forcedly. */
+        if (arg_action == ACTION_REBOOT ||
+            arg_action == ACTION_POWEROFF)
+                arg_force = 2;
+
         return 1;
 }
 
