@@ -159,7 +159,7 @@ cp %{SOURCE1001} .
         --disable-static \
         --with-sysvinit-path= \
         --with-sysvrcnd-path= \
-        --with-smack-run-label=System \
+        --with-smack-run-label=System::Privileged \
 %if ! %{?with_multiuser}
         --disable-logind \
 %endif
