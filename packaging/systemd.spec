@@ -163,6 +163,7 @@ cp %{SOURCE1001} .
 %if ! %{?with_multiuser}
         --disable-logind \
 %endif
+        --disable-gcrypt \
         cc_cv_CFLAGS__flto=no
 make %{?_smp_mflags} \
         systemunitdir=%{_unitdir} \
