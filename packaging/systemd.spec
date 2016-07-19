@@ -15,6 +15,7 @@
 %define WITH_TIMEDATED 0
 %define WITH_RFKILL 0
 %define with_multiuser 1
+%define WITH_GCRYPT 0
 
 Name:           systemd
 Version:        219
@@ -162,6 +163,9 @@ cp %{SOURCE1001} .
         --with-smack-run-label=System::Privileged \
 %if ! %{?with_multiuser}
         --disable-logind \
+%endif
+%if ! %{?WITH_GCRYPT}
+        --disable-gcrypt \
 %endif
         cc_cv_CFLAGS__flto=no
 make %{?_smp_mflags} \
