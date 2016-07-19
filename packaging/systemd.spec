@@ -15,6 +15,7 @@
 %define WITH_TIMEDATED 0
 %define WITH_RFKILL 0
 %define with_multiuser 1
+%define WITH_MACHINED 0
 
 Name:           systemd
 Version:        219
@@ -154,6 +155,11 @@ cp %{SOURCE1001} .
         --disable-timesyncd \
         --disable-resolved \
         --disable-networkd \
+%if ! %{?WITH_MACHINED}
+        --disable-machined \
+%endif
+        --disable-importd \
+        --disable-gcrypt \
         --libexecdir=%{_prefix}/lib \
         --docdir=%{_docdir}/systemd \
         --disable-static \
@@ -335,7 +341,9 @@ fi
 %{_bindir}/bootctl
 %{_bindir}/busctl
 %{_bindir}/kernel-install
+%if %{?WITH_MACHINED}
 %{_bindir}/machinectl
+%endif
 %{_bindir}/systemd-run
 %dir %{_prefix}/lib/kernel
 %dir %{_prefix}/lib/kernel/install.d
@@ -389,7 +397,9 @@ fi
 %if %{?WITH_TIMEDATED}
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freedesktop.timedate1.conf
 %endif
+%if %{?WITH_MACHINED}
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freedesktop.machine1.conf
+%endif
 %config(noreplace) %{_sysconfdir}/systemd/bootchart.conf
 %if %{?WITH_COREDUMP}
 %config(noreplace) %{_sysconfdir}/systemd/coredump.conf
@@ -503,7 +513,9 @@ fi
 %if %{?WITH_TIMEDATED}
 %{_datadir}/dbus-1/system-services/org.freedesktop.timedate1.service
 %endif
+%if %{?WITH_MACHINED}
 %{_datadir}/dbus-1/system-services/org.freedesktop.machine1.service
+%endif
 %dir %{_datadir}/polkit-1
 %dir %{_datadir}/polkit-1/actions
 %{_datadir}/polkit-1/actions/org.freedesktop.systemd1.policy
@@ -515,7 +527,9 @@ fi
 %if %{?WITH_TIMEDATED}
 %{_datadir}/polkit-1/actions/org.freedesktop.timedate1.policy
 %endif
+%if %{?WITH_MACHINED}
 %{_datadir}/polkit-1/actions/org.freedesktop.machine1.policy
+%endif
 %dir %{_datadir}/factory/
 %dir %{_datadir}/factory/etc
 %dir %{_datadir}/factory/etc/pam.d
@@ -544,7 +558,9 @@ fi
 %{_libdir}/libsystemd-journal.so.*
 %{_libdir}/libsystemd-login.so.*
 %{_libdir}/libnss_myhostname.so.2
+%if %{?WITH_MACHINED}
 %{_libdir}/libnss_mymachines.so.2
+%endif
 
 %files devel
 %manifest %{name}.manifest
