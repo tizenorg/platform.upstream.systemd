@@ -18,3 +18,4 @@ ConditionNeedsUpdate=/etc
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=/sbin/ldconfig -X
+SmackProcessLabel=System

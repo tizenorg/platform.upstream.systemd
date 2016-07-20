@@ -15,3 +15,4 @@ After=shutdown.target umount.target final.target
 [Service]
 Type=oneshot
 ExecStart=@SYSTEMCTL@ --force reboot
+SmackProcessLabel=System

@@ -18,3 +18,4 @@ ConditionPathExists=/etc/initrd-release
 [Service]
 Type=oneshot
 ExecStart=@rootlibexecdir@/systemd-hibernate-resume %f
+SmackProcessLabel=System

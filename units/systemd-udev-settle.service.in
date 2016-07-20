@@ -23,3 +23,4 @@ Type=oneshot
 TimeoutSec=180
 RemainAfterExit=yes
 ExecStart=@rootbindir@/udevadm settle
+SmackProcessLabel=System

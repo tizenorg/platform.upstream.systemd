@@ -18,3 +18,4 @@ ConditionPathIsReadWrite=/sys
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=@rootbindir@/udevadm trigger --type=subsystems --action=add ; @rootbindir@/udevadm trigger --type=devices --action=add
+SmackProcessLabel=System

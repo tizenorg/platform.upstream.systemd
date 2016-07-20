@@ -19,3 +19,4 @@ ConditionNeedsUpdate=|/var
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=@rootlibexecdir@/systemd-update-done
+SmackProcessLabel=System
