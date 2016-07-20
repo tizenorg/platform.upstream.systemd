@@ -39,6 +39,7 @@ TTYVTDisallocate=yes
 KillMode=process
 IgnoreSIGPIPE=no
 SendSIGHUP=yes
+SmackProcessLabel=System
 
 # Unset locale for the console getty since the console has problems
 # displaying some internationalized messages.

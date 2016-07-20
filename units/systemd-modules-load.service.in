@@ -24,3 +24,4 @@ ConditionKernelCommandLine=|rd.modules-load
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=@rootlibexecdir@/systemd-modules-load
+SmackProcessLabel=System

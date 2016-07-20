@@ -20,3 +20,4 @@ ExecStart=@rootbindir@/journalctl --flush
 Type=oneshot
 RemainAfterExit=yes
 TimeoutSec=90s
+SmackProcessLabel=System

@@ -22,3 +22,4 @@ PrivateDevices=yes
 PrivateNetwork=yes
 ProtectSystem=full
 ProtectHome=yes
+SmackProcessLabel=System

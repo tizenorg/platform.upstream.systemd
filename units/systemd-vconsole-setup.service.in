@@ -17,3 +17,4 @@ ConditionPathExists=/dev/tty0
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=@rootlibexecdir@/systemd-vconsole-setup
+SmackProcessLabel=System

@@ -16,3 +16,4 @@ ConditionPathExists=/lib/modules/%v/modules.devname
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=@KMOD@ static-nodes --format=tmpfiles --output=/run/tmpfiles.d/kmod.conf
+SmackProcessLabel=System

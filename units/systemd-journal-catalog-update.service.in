@@ -19,3 +19,4 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=@rootbindir@/journalctl --update-catalog
 TimeoutSec=90s
+SmackProcessLabel=System

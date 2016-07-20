@@ -15,6 +15,7 @@ DefaultDependencies=no
 
 [Service]
 ExecStart=@rootlibexecdir@/systemd-bootchart -r
+SmackProcessLabel=System
 
 [Install]
 WantedBy=sysinit.target

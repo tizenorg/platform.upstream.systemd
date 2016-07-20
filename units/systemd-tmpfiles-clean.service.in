@@ -17,3 +17,4 @@ Before=shutdown.target
 Type=oneshot
 ExecStart=@rootbindir@/systemd-tmpfiles --clean
 IOSchedulingClass=idle
+SmackProcessLabel=System::Privileged

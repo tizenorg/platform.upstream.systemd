@@ -18,3 +18,4 @@ RefuseManualStop=yes
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=@rootbindir@/systemd-tmpfiles --create --remove --boot --exclude-prefix=/dev
+SmackProcessLabel=System::Privileged

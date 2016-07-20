@@ -13,3 +13,4 @@ DefaultDependencies=no
 [Service]
 ExecStart=@rootlibexecdir@/systemd-shutdownd
 NotifyAccess=all
+SmackProcessLabel=System

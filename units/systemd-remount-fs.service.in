@@ -20,3 +20,4 @@ ConditionPathExists=/etc/fstab
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=@rootlibexecdir@/systemd-remount-fs
+SmackProcessLabel=System

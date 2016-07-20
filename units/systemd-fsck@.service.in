@@ -19,3 +19,4 @@ RemainAfterExit=yes
 ExecStart=@rootlibexecdir@/systemd-fsck %f
 StandardOutput=journal+console
 TimeoutSec=0
+SmackProcessLabel=System
