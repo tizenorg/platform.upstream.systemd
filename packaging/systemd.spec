@@ -275,7 +275,6 @@ rm -f %{buildroot}/%{_prefix}/lib/systemd/system-generators/systemd-debug-genera
 rm -f %{buildroot}/%{_prefix}/lib/systemd/system-generators/systemd-efi-boot-generator
 rm -f %{buildroot}/%{_prefix}/lib/systemd/system-generators/systemd-gpt-auto-generator
 rm -f %{buildroot}/%{_prefix}/lib/systemd/system-generators/systemd-hibernate-resume-generator
-rm -f %{buildroot}/%{_prefix}/lib/systemd/system-generators/systemd-system-update-generator
 
 # Shell Completion
 %if ! %{?WITH_BASH_COMPLETION}
@@ -485,6 +484,7 @@ fi
 %{_prefix}/lib/systemd/system-generators/systemd-dbus1-generator
 %{_prefix}/lib/systemd/user-generators/systemd-dbus1-generator
 %endif
+%{_prefix}/lib/systemd/system-generators/systemd-system-update-generator
 %{_prefix}/lib/tmpfiles.d/systemd.conf
 %{_prefix}/lib/tmpfiles.d/x11.conf
 %{_prefix}/lib/tmpfiles.d/tmp.conf
